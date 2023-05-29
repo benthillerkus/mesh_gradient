@@ -5,11 +5,14 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_color_models/flutter_color_models.dart';
 import 'package:mesh_gradient/dot.dart';
 import 'package:mesh_gradient/picker.dart';
+import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 
 late FragmentShader fragmentShader;
 late FragmentShader pickerFragmentShader;
 
 Future<void> main() async {
+  usePathUrlStrategy();
+
   final (fragmentProgram, pickerFragmentProgram) = await (
     FragmentProgram.fromAsset('assets/shader.glsl'),
     FragmentProgram.fromAsset('assets/picker.glsl')
