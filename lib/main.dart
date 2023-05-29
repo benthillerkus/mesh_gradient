@@ -111,16 +111,7 @@ class _HomeState extends State<Home> {
   }
 }
 
-extension on Offset {
-  Alignment alignmentIn(Size size) =>
-      Alignment(dx / size.width * 2 - 1, dy / size.height * 2 - 1);
-}
-
-typedef Quad = ({int topLeft, int topRight, int bottomLeft, int bottomRight});
-typedef QuadGrid = List<List<Quad>>;
-typedef Edge = ({int start, int end});
-
-QuadGrid quadsFromControlPoints(int rows, int columns) {
+List<List<Quad>> quadsFromControlPoints(int rows, int columns) {
   final grid = <List<Quad>>[];
   for (int i = 0; i < rows - 1; i++) {
     final row = <Quad>[];
@@ -141,122 +132,59 @@ QuadGrid quadsFromControlPoints(int rows, int columns) {
   return grid;
 }
 
-// List<Edge> edgesFromFaces(List<Face> faces) {
-//   final Set<Edge> edges = {};
-//   for (final face in faces) {
-//     for (int i = 0; i < face.length; i++) {
-//       edges.add((
-//         start: face[i],
-//         end: face[(i + 1) % face.length],
-//       ));
-//     }
-//   }
-//   return edges.toList();
-// }
+late Canvas globalCanvas;
+late Paint dbgPaint;
+
+void dbgPoint(Offset p) {
+  globalCanvas.drawCircle(p, 5.0, dbgPaint);
+}
+
+class BezierPatchSurface {
+  final List<List<Offset>> _controlPoints;
+
+  BezierPatchSurface(this._controlPoints);
+
+  Offset evaluate(double u, double v) {
+    int n = _controlPoints.length - 1;
+
+    final uPoints = [
+      for (int i = 0; i <= n; i++) _deCasteljau(_controlPoints[i], v)
+    ];
+
+    return _deCasteljau(uPoints, u);
+  }
+
+  Offset _deCasteljau(List<Offset> points, double t) {
+    if (t == 0) return points[0];
+    if (t == 1) return points[points.length - 1];
+    if (points.length == 1) return points[0];
+
+    int n = points.length - 1;
+    List<Offset> tempPoints = points.toList(growable: false);
+
+    for (int r = 1; r <= n; r++) {
+      for (int i = 0; i <= n - r; i++) {
+        tempPoints[i] = (tempPoints[i] * (1 - t)) + (tempPoints[i + 1] * t);
+      }
+    }
+
+    // dbgPoint(tempPoints[0]);
+
+    return tempPoints[0];
+  }
+}
+
+extension on Offset {
+  Alignment alignmentIn(Size size) =>
+      Alignment(dx / size.width * 2 - 1, dy / size.height * 2 - 1);
+}
+
+typedef Quad = ({int topLeft, int topRight, int bottomLeft, int bottomRight});
 
 Iterable<List<int>> triangulateQuads(Iterable<Quad> quadFaces) sync* {
   for (final quadFace in quadFaces) {
     yield [quadFace.topLeft, quadFace.topRight, quadFace.bottomRight];
     yield [quadFace.topLeft, quadFace.bottomRight, quadFace.bottomLeft];
-  }
-}
-
-(List<Offset>, List<ColorModel>, List<Quad>) subdivideCatmullClark(
-    List<Offset> positions, List<ColorModel> colors, QuadGrid faces) {
-  final facePoints = [
-    for (final face in faces.flattened)
-      (positions[face.topLeft] +
-              positions[face.topRight] +
-              positions[face.bottomLeft] +
-              positions[face.bottomRight]) *
-          0.25
-  ];
-
-  final edgePoints = <Offset>[];
-  final positionEdgeMidpoints = List<Set<Offset>?>.filled(positions.length, null, growable: false);
-  final rows = faces.length;
-  final columns = faces[0].length;
-  for (int i = 0; i < rows; i++) {
-    for (int j = 0; j < columns; j++) {
-      final face = faces[i][j];
-      final facePoint = facePoints[i * columns + j];
-
-      final topMidpoint = positions[face.topLeft] +
-          (positions[face.topRight] - positions[face.topLeft]) * 0.5;
-      final rightMidpoint = positions[face.topRight] +
-          (positions[face.bottomRight] - positions[face.topRight]) * 0.5;
-      final bottomMidpoint = positions[face.bottomLeft] +
-          (positions[face.bottomRight] - positions[face.bottomLeft]) * 0.5;
-      final leftMidpoint = positions[face.topLeft] +
-          (positions[face.bottomLeft] - positions[face.topLeft]) * 0.5;
-
-      face.topLeftMidPoint = topMidpoint;
-
-      edgeMidPoints.add(topMidpoint);
-      edgeMidPoints.add(rightMidpoint);
-      edgeMidPoints.add(bottomMidpoint);
-      edgeMidPoints.add(leftMidpoint);
-
-      final top = facePoints.elementAtOrNull((i - 1) * columns + j);
-      final right = facePoints.elementAtOrNull(i * columns + j + 1);
-      final bottom = facePoints.elementAtOrNull((i + 1) * columns + j);
-      final left = facePoints.elementAtOrNull(i * columns + j - 1);
-
-      final topEdgePoint = top == null
-          ? topMidpoint
-          : (((top + facePoint) / 2) + topMidpoint) / 2;
-      final rightEdgePoint = right == null
-          ? rightMidpoint
-          : (((right + facePoint) / 2) + rightMidpoint) / 2;
-      final bottomEdgePoint = bottom == null
-          ? bottomMidpoint
-          : (((bottom + facePoint) / 2) + bottomMidpoint) / 2;
-      final leftEdgePoint = left == null
-          ? leftMidpoint
-          : (((left + facePoint) / 2) + leftMidpoint) / 2;
-
-      edgePoints.add(topEdgePoint);
-      edgePoints.add(rightEdgePoint);
-      edgePoints.add(bottomEdgePoint);
-      edgePoints.add(leftEdgePoint);
-    }
-  }
-
-  final newPositions = <Offset>[];
-  final newColors = <ColorModel>[];
-
-  for (int i = 0; i < positions.length; i++) {
-    final position = positions[i];
-    final color = colors[i];
-
-    // 1. average of face points for faces touching this vertex
-    final currentRow = i ~/ columns;
-    final topLeftFacePoint =
-        facePoints.elementAtOrNull(i - columns - currentRow - 1);
-    final topRightFacePoint =
-        facePoints.elementAtOrNull(i - columns - currentRow);
-    final bottomLeftFacePoint = facePoints.elementAtOrNull(i - currentRow - 1);
-    final bottomRightFacePoint = facePoints.elementAtOrNull(i - currentRow);
-    final allFacePoints = [
-      topLeftFacePoint,
-      topRightFacePoint,
-      bottomLeftFacePoint,
-      bottomRightFacePoint
-    ].whereType<Offset>().toList();
-    final averageFacePoint =
-        allFacePoints.reduce((a, b) => a + b) / facePoints.length.toDouble();
-
-    // 2. average of edge midpoints for edges touching this vertex
-    final rightEdgeMidPoint =
-        edgeMidPoints.elementAtOrNull((i - currentRow) * 4) ??
-            edgeMidPoints.elementAtOrNull((i - currentRow - 1) * 4 + 2);
-    final bottomEdgeMidPoint =
-        edgeMidPoints.elementAtOrNull((i - currentRow) * 4 + 3) ??
-            edgeMidPoints.elementAtOrNull((i - currentRow - 1) * 4 + 1);
-    final leftEdgeMidPoint =
-        edgeMidPoints.elementAtOrNull((i - currentRow - 1) * 4);
-    final topEdgeMidPoint =
-        edgeMidPoints.elementAtOrNull((i - currentRow - 1) * 4 + 1);
   }
 }
 
@@ -270,19 +198,71 @@ class _Painter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final quads = quadsFromControlPoints(rows, columns);
-    final triangles = triangulateQuads(quads.flattened);
-    final positions = <Offset>[];
-    final colors = <Color>[];
-    for (final triangle in triangles) {
-      for (final index in triangle) {
-        positions.add(this.positions[index].alongSize(size));
-        colors.add(this.colors[index].toColor());
+    globalCanvas = canvas;
+    dbgPaint = Paint()..color = const Color.fromARGB(255, 0, 255, 0);
+
+    final surface = BezierPatchSurface([
+      [
+        positions[0].alongSize(size),
+        positions[1].alongSize(size),
+        positions[2].alongSize(size)
+      ],
+      [
+        positions[3].alongSize(size),
+        positions[4].alongSize(size),
+        positions[5].alongSize(size)
+      ],
+      [
+        positions[6].alongSize(size),
+        positions[7].alongSize(size),
+        positions[8].alongSize(size)
+      ],
+    ]);
+
+    final quads = quadsFromControlPoints(rows * 2 + 1, columns * 2 + 1);
+    final ppositions = <Offset>[];
+    for (int i = 0; i <= rows * 2; i++) {
+      for (int j = 0; j <= columns * 2; j++) {
+        ppositions.add(surface.evaluate(i / (rows * 2), j / (columns * 2)));
       }
     }
 
-    final vertices = Vertices(VertexMode.triangles, positions, colors: colors);
-    canvas.drawVertices(vertices, BlendMode.dstOver, Paint());
+    // print(ppositions.length);
+    // for (final p in ppositions) {
+    //   print(p);
+    // }
+
+    // print(quads.length);
+    // for (final rq in quads) {
+    //   for (final cq in rq) {
+    //     print(cq);
+    //   }
+    // }
+
+    final triangles = triangulateQuads(quads.flattened);
+    final mypositions = <Offset>[];
+    // final mycolors = <Color>[];
+    for (final triangle in triangles) {
+      for (final index in triangle) {
+        mypositions.add(ppositions[index]);
+        // mycolors.add(this.colors[index].toColor());
+      }
+    }
+
+    for (final p in ppositions) {
+      canvas.drawCircle(p, 2, dbgPaint);
+    }
+
+    final vertices = Vertices(VertexMode.triangles, mypositions);
+    canvas.drawVertices(
+      vertices,
+      // BlendMode.dstOver,
+      BlendMode.srcOver,
+      Paint()
+        ..style = PaintingStyle.fill
+        ..strokeWidth = 1
+        ..color = const Color.fromARGB(20, 255, 255, 255),
+    );
   }
 
   @override
