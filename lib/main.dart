@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_color_models/flutter_color_models.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:mess_gradients/dot.dart';
 import 'package:mess_gradients/picker.dart';
 
@@ -20,41 +19,75 @@ Future<void> main() async {
   runApp(Directionality(
     textDirection: TextDirection.ltr,
     child: Overlay(
-        initialEntries: [OverlayEntry(builder: (context) => const Home())]),
+      initialEntries: [
+        OverlayEntry(
+          builder: (context) {
+            return const Center(
+              child: SizedBox.square(
+                dimension: 600,
+                child: MeshGradientConfiguration(
+                  rows: 4,
+                  columns: 4,
+                  previewResolution: 0.05,
+                ),
+              ),
+            );
+          },
+        )
+      ],
+    ),
   ));
 }
 
-class Home extends StatefulWidget {
-  const Home({super.key});
+class MeshGradientConfiguration extends StatefulWidget {
+  const MeshGradientConfiguration(
+      {super.key,
+      this.rows = 3,
+      this.columns = 3,
+      this.previewResolution = 0.05});
+
+  final int rows;
+  final int columns;
+  final double previewResolution;
 
   @override
-  State<Home> createState() => _HomeState();
+  State<MeshGradientConfiguration> createState() =>
+      _MeshGradientConfigurationState();
 }
 
-class _HomeState extends State<Home> {
-  final positions = <Alignment>[
-    Alignment.topLeft,
-    Alignment.topCenter,
-    Alignment.topRight,
-    Alignment.centerLeft,
-    Alignment.center,
-    Alignment.centerRight,
-    Alignment.bottomLeft,
-    Alignment.bottomCenter,
-    Alignment.bottomRight,
-  ];
+class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
+  @override
+  void initState() {
+    super.initState();
+    fillLists();
+  }
 
-  final colors = <OklabColor>[
-    OklabColor.fromColor(const Color.fromARGB(255, 255, 122, 122)),
-    OklabColor.fromColor(const Color.fromARGB(255, 255, 122, 122)),
-    OklabColor.fromColor(const Color.fromARGB(255, 255, 122, 122)),
-    OklabColor.fromColor(const Color.fromARGB(255, 255, 122, 122)),
-    OklabColor.fromColor(const Color.fromARGB(255, 255, 122, 122)),
-    OklabColor.fromColor(const Color.fromARGB(255, 255, 122, 122)),
-    OklabColor.fromColor(const Color.fromARGB(255, 255, 122, 122)),
-    OklabColor.fromColor(const Color.fromARGB(255, 255, 122, 122)),
-    OklabColor.fromColor(const Color.fromARGB(255, 255, 122, 122)),
-  ];
+  @override
+  void didUpdateWidget(covariant MeshGradientConfiguration oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    fillLists();
+  }
+
+  void fillLists() {
+    positions = [];
+    colors = [];
+    for (int i = 0; i < widget.rows; i++) {
+      final row = <Alignment>[];
+      final colorRow = <OklabColor>[];
+      for (int j = 0; j < widget.columns; j++) {
+        row.add(Alignment(
+          (j / (widget.columns - 1)) * 2 - 1,
+          (i / (widget.rows - 1)) * 2 - 1,
+        ));
+        colorRow.add(const OklabColor(1, 0.1, 0));
+      }
+      positions.add(row);
+      colors.add(colorRow);
+    }
+  }
+
+  List<List<Alignment>> positions = [];
+  List<List<OklabColor>> colors = [];
 
   final centerDotOffset = Offset(
     -const DotThemeData().radius,
@@ -63,51 +96,47 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SizedBox.square(
-          dimension: 400,
-          child: LayoutBuilder(builder: (context, constraints) {
-            return Stack(
-              children: [
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _Painter(
-                      positions,
-                      colors,
-                      rows: 3,
-                      columns: 3,
-                    ),
+    return LayoutBuilder(builder: (context, constraints) {
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _MeshGradientPainter(
+                positions,
+                colors,
+                resolution: widget.previewResolution,
+              ),
+            ),
+          ),
+          for (int i = 0; i < positions.length; i++)
+            for (int j = 0; j < positions[i].length; j++)
+              Positioned(
+                left: (positions[i][j].x / 2 + 0.5) * constraints.biggest.width,
+                top: (positions[i][j].y / 2 + 0.5) * constraints.biggest.height,
+                child: Transform.translate(
+                  offset: centerDotOffset,
+                  child: Listener(
+                    onPointerMove: (details) {
+                      setState(() {
+                        final newPosition =
+                            (positions[i][j].alongSize(constraints.biggest) +
+                                details.delta);
+                        positions[i][j] =
+                            newPosition.alignmentIn(constraints.biggest);
+                      });
+                    },
+                    child: PickerDot(
+                        color: colors[i][j],
+                        dotStyle:
+                            const DotThemeData().copyWith(border: colors[i][j]),
+                        onColorChanged: (cl) =>
+                            setState(() => colors[i][j] = cl)),
                   ),
                 ),
-                for (int i = 0; i < colors.length; i++)
-                  Positioned(
-                    left:
-                        (positions[i].x / 2 + 0.5) * constraints.biggest.width,
-                    top:
-                        (positions[i].y / 2 + 0.5) * constraints.biggest.height,
-                    child: Transform.translate(
-                      offset: centerDotOffset,
-                      child: Listener(
-                        onPointerMove: (details) {
-                          setState(() {
-                            final newPosition =
-                                (positions[i].alongSize(constraints.biggest) +
-                                    details.delta);
-                            positions[i] =
-                                newPosition.alignmentIn(constraints.biggest);
-                          });
-                        },
-                        child: PickerDot(
-                            color: colors[i],
-                            onColorChanged: (cl) =>
-                                setState(() => colors[i] = cl)),
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          })),
-    );
+              ),
+        ],
+      );
+    });
   }
 }
 
@@ -132,13 +161,6 @@ List<List<Quad>> quadsFromControlPoints(int rows, int columns) {
   return grid;
 }
 
-late Canvas globalCanvas;
-late Paint dbgPaint;
-
-void dbgPoint(Offset p) {
-  globalCanvas.drawCircle(p, 5.0, dbgPaint);
-}
-
 class BezierPatchSurface<T> {
   final List<List<T>> _controlPoints;
 
@@ -146,6 +168,10 @@ class BezierPatchSurface<T> {
     lerp = switch (T) {
       Offset => Offset.lerp as T? Function(T? a, T? b, double t),
       Color => Color.lerp as T? Function(T? a, T? b, double t),
+      Alignment => Alignment.lerp as T? Function(T? a, T? b, double t),
+      Size => Size.lerp as T? Function(T? a, T? b, double t),
+      OklabColor => ((OklabColor? a, OklabColor? b, double t) =>
+          a!.interpolate(b!, t)) as T? Function(T? a, T? b, double t),
       _ => throw UnsupportedError('Unsupported type $T'),
     };
   }
@@ -197,65 +223,29 @@ Iterable<List<int>> triangulateQuads(Iterable<Quad> quadFaces) sync* {
   }
 }
 
-class _Painter extends CustomPainter {
-  const _Painter(this.positions, this.colors,
-      {required this.rows, required this.columns});
-  final List<OklabColor> colors;
-  final List<Alignment> positions;
-  final int rows;
-  final int columns;
+class _MeshGradientPainter extends CustomPainter {
+  const _MeshGradientPainter(this.positions, this.colors,
+      {this.resolution = 0.05, this.debugGrid = false});
+  final List<List<OklabColor>> colors;
+  final List<List<Alignment>> positions;
+  final double resolution;
+  final bool debugGrid;
 
   @override
   void paint(Canvas canvas, Size size) {
-    globalCanvas = canvas;
-    dbgPaint = Paint()..color = const Color.fromARGB(255, 0, 255, 0);
+    final yRes = (size * resolution).width.toInt();
+    final xRes = (size * resolution).height.toInt();
 
-    final surface = BezierPatchSurface([
-      [
-        positions[0].alongSize(size),
-        positions[1].alongSize(size),
-        positions[2].alongSize(size),
-      ],
-      [
-        positions[3].alongSize(size),
-        positions[4].alongSize(size),
-        positions[5].alongSize(size),
-      ],
-      [
-        positions[6].alongSize(size),
-        positions[7].alongSize(size),
-        positions[8].alongSize(size),
-      ],
-    ]);
-
-    final colorSurface = BezierPatchSurface([
-      [
-        colors[0].toColor(),
-        colors[1].toColor(),
-        colors[2].toColor(),
-      ],
-      [
-        colors[3].toColor(),
-        colors[4].toColor(),
-        colors[5].toColor(),
-      ],
-      [
-        colors[6].toColor(),
-        colors[7].toColor(),
-        colors[8].toColor(),
-      ],
-    ]);
-
-    final yRes = 7;
-    final xRes = 7;
+    final surface = BezierPatchSurface(positions);
+    final colorSurface = BezierPatchSurface(colors);
 
     final quads = quadsFromControlPoints(yRes, xRes);
     final evaluatedPositions = <Offset>[];
     final evaluatedColors = <Color>[];
     for (int i = 0; i < yRes; i++) {
       for (int j = 0; j < xRes; j++) {
-        evaluatedPositions
-            .add(surface.evaluate(i / (yRes - 1), j / (xRes - 1)));
+        evaluatedPositions.add(
+            surface.evaluate(i / (yRes - 1), j / (xRes - 1)).alongSize(size));
         evaluatedColors
             .add(colorSurface.evaluate(i / (yRes - 1), j / (xRes - 1)));
       }
@@ -263,25 +253,30 @@ class _Painter extends CustomPainter {
 
     final triangles = triangulateQuads(quads.flattened);
 
-    for (final p in evaluatedPositions) {
-      canvas.drawCircle(p, 2, dbgPaint);
-    }
-
     final vertices = Vertices(
       VertexMode.triangles,
       evaluatedPositions,
       colors: evaluatedColors,
       indices: triangles.flattened.toList(),
     );
+
     canvas.drawVertices(
       vertices,
       BlendMode.dstOver,
       Paint(),
     );
+
+    if (debugGrid) {
+      final dbgPaint = Paint()..color = const Color.fromARGB(255, 0, 255, 0);
+      for (final p in evaluatedPositions) {
+        canvas.drawCircle(p, 2, dbgPaint);
+      }
+    }
   }
 
   @override
-  bool shouldRepaint(_Painter oldDelegate) =>
+  bool shouldRepaint(_MeshGradientPainter oldDelegate) =>
+      resolution != oldDelegate.resolution ||
       !colors.equals(oldDelegate.colors) ||
       !positions.equals(oldDelegate.positions);
 }

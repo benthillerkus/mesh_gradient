@@ -12,7 +12,7 @@ import 'package:mess_gradients/main.dart';
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const Home());
+    await tester.pumpWidget(const MeshGradientConfiguration());
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

@@ -12,6 +12,19 @@ class DotThemeData {
   final Color border;
   final double radius;
   final double thickness;
+
+  DotThemeData copyWith({
+    Color? fill,
+    Color? border,
+    double? radius,
+    double? thickness,
+  }) =>
+      DotThemeData(
+        fill: fill ?? this.fill,
+        border: border ?? this.border,
+        radius: radius ?? this.radius,
+        thickness: thickness ?? this.thickness,
+      );
 }
 
 class Dot extends StatelessWidget {
