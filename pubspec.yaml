@@ -1,0 +1,22 @@
+name: mess_gradients
+description: A new Flutter project.
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_color_models: ^1.3.3+2
+  flutter_hooks: ^0.18.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  shaders:
+    - "assets/shader.glsl"
+    - "assets/oklch.glsl"
+    - "assets/picker.glsl"
