@@ -5,18 +5,18 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "mesh_gradients",
+      "name": "mesh_gradient",
       "request": "launch",
       "type": "dart"
     },
     {
-      "name": "mesh_gradients (profile mode)",
+      "name": "mesh_gradient (profile mode)",
       "request": "launch",
       "type": "dart",
       "flutterMode": "profile"
     },
     {
-      "name": "mesh_gradients (release mode)",
+      "name": "mesh_gradient (release mode)",
       "request": "launch",
       "type": "dart",
       "flutterMode": "release"

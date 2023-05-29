@@ -1,4 +1,4 @@
-# mesh_gradients
+# mesh_gradient
 
 A new Flutter project.
 
