@@ -3,8 +3,8 @@ import 'dart:ui';
 import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_color_models/flutter_color_models.dart';
-import 'package:mess_gradients/dot.dart';
-import 'package:mess_gradients/picker.dart';
+import 'package:mesh_gradient/dot.dart';
+import 'package:mesh_gradient/picker.dart';
 
 late FragmentShader fragmentShader;
 late FragmentShader pickerFragmentShader;

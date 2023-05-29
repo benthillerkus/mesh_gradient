@@ -1,6 +1,6 @@
 {
-    "name": "mess_gradients",
-    "short_name": "mess_gradients",
+    "name": "mesh_gradient",
+    "short_name": "mesh_gradient",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

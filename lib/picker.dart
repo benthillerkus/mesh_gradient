@@ -2,9 +2,9 @@ import 'dart:math';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:mess_gradients/conversions.dart';
-import 'package:mess_gradients/dot.dart';
-import 'package:mess_gradients/main.dart';
+import 'package:mesh_gradient/conversions.dart';
+import 'package:mesh_gradient/dot.dart';
+import 'package:mesh_gradient/main.dart';
 import 'package:flutter_color_models/flutter_color_models.dart';
 
 class PickerDot extends HookWidget {

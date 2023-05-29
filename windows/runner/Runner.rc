@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "mess_gradients" "\0"
+            VALUE "FileDescription", "mesh_gradient" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "mess_gradients" "\0"
+            VALUE "InternalName", "mesh_gradient" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2023 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "mess_gradients.exe" "\0"
-            VALUE "ProductName", "mess_gradients" "\0"
+            VALUE "OriginalFilename", "mesh_gradient.exe" "\0"
+            VALUE "ProductName", "mesh_gradient" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
