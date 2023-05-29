@@ -139,36 +139,45 @@ void dbgPoint(Offset p) {
   globalCanvas.drawCircle(p, 5.0, dbgPaint);
 }
 
-class BezierPatchSurface {
-  final List<List<Offset>> _controlPoints;
+class BezierPatchSurface<T> {
+  final List<List<T>> _controlPoints;
 
-  BezierPatchSurface(this._controlPoints);
-
-  Offset evaluate(double u, double v) {
-    int n = _controlPoints.length - 1;
-
-    final uPoints = [
-      for (int i = 0; i <= n; i++) _deCasteljau(_controlPoints[i], v)
-    ];
-
-    return _deCasteljau(uPoints, u);
+  BezierPatchSurface(this._controlPoints) {
+    lerp = switch (T) {
+      Offset => Offset.lerp as T? Function(T? a, T? b, double t),
+      Color => Color.lerp as T? Function(T? a, T? b, double t),
+      _ => throw UnsupportedError('Unsupported type $T'),
+    };
   }
 
-  Offset _deCasteljau(List<Offset> points, double t) {
+  final Map<double, List<T>> _cache = {};
+
+  late final T? Function(T? a, T? b, double t) lerp;
+
+  T evaluate(double u, double v) {
+    int n = _controlPoints.length - 1;
+
+    final hStrip = _cache.putIfAbsent(
+        v,
+        () =>
+            [for (int i = 0; i <= n; i++) _deCasteljau(_controlPoints[i], v)]);
+
+    return _deCasteljau(hStrip, u);
+  }
+
+  T _deCasteljau(List<T> points, double t) {
     if (t == 0) return points[0];
     if (t == 1) return points[points.length - 1];
     if (points.length == 1) return points[0];
 
     int n = points.length - 1;
-    List<Offset> tempPoints = points.toList(growable: false);
+    List<T> tempPoints = points.toList(growable: false);
 
     for (int r = 1; r <= n; r++) {
       for (int i = 0; i <= n - r; i++) {
-        tempPoints[i] = (tempPoints[i] * (1 - t)) + (tempPoints[i + 1] * t);
+        tempPoints[i] = lerp(tempPoints[i], tempPoints[i + 1], t) as T;
       }
     }
-
-    // dbgPoint(tempPoints[0]);
 
     return tempPoints[0];
   }
@@ -191,7 +200,7 @@ Iterable<List<int>> triangulateQuads(Iterable<Quad> quadFaces) sync* {
 class _Painter extends CustomPainter {
   const _Painter(this.positions, this.colors,
       {required this.rows, required this.columns});
-  final List<ColorModel> colors;
+  final List<OklabColor> colors;
   final List<Alignment> positions;
   final int rows;
   final int columns;
@@ -205,63 +214,69 @@ class _Painter extends CustomPainter {
       [
         positions[0].alongSize(size),
         positions[1].alongSize(size),
-        positions[2].alongSize(size)
+        positions[2].alongSize(size),
       ],
       [
         positions[3].alongSize(size),
         positions[4].alongSize(size),
-        positions[5].alongSize(size)
+        positions[5].alongSize(size),
       ],
       [
         positions[6].alongSize(size),
         positions[7].alongSize(size),
-        positions[8].alongSize(size)
+        positions[8].alongSize(size),
       ],
     ]);
 
-    final quads = quadsFromControlPoints(rows * 2 + 1, columns * 2 + 1);
-    final ppositions = <Offset>[];
-    for (int i = 0; i <= rows * 2; i++) {
-      for (int j = 0; j <= columns * 2; j++) {
-        ppositions.add(surface.evaluate(i / (rows * 2), j / (columns * 2)));
+    final colorSurface = BezierPatchSurface([
+      [
+        colors[0].toColor(),
+        colors[1].toColor(),
+        colors[2].toColor(),
+      ],
+      [
+        colors[3].toColor(),
+        colors[4].toColor(),
+        colors[5].toColor(),
+      ],
+      [
+        colors[6].toColor(),
+        colors[7].toColor(),
+        colors[8].toColor(),
+      ],
+    ]);
+
+    final yRes = 7;
+    final xRes = 7;
+
+    final quads = quadsFromControlPoints(yRes, xRes);
+    final evaluatedPositions = <Offset>[];
+    final evaluatedColors = <Color>[];
+    for (int i = 0; i < yRes; i++) {
+      for (int j = 0; j < xRes; j++) {
+        evaluatedPositions
+            .add(surface.evaluate(i / (yRes - 1), j / (xRes - 1)));
+        evaluatedColors
+            .add(colorSurface.evaluate(i / (yRes - 1), j / (xRes - 1)));
       }
     }
-
-    // print(ppositions.length);
-    // for (final p in ppositions) {
-    //   print(p);
-    // }
-
-    // print(quads.length);
-    // for (final rq in quads) {
-    //   for (final cq in rq) {
-    //     print(cq);
-    //   }
-    // }
 
     final triangles = triangulateQuads(quads.flattened);
-    final mypositions = <Offset>[];
-    // final mycolors = <Color>[];
-    for (final triangle in triangles) {
-      for (final index in triangle) {
-        mypositions.add(ppositions[index]);
-        // mycolors.add(this.colors[index].toColor());
-      }
-    }
 
-    for (final p in ppositions) {
+    for (final p in evaluatedPositions) {
       canvas.drawCircle(p, 2, dbgPaint);
     }
 
-    final vertices = Vertices(VertexMode.triangles, mypositions);
+    final vertices = Vertices(
+      VertexMode.triangles,
+      evaluatedPositions,
+      colors: evaluatedColors,
+      indices: triangles.flattened.toList(),
+    );
     canvas.drawVertices(
       vertices,
-      // BlendMode.dstOver,
-      BlendMode.srcOver,
-      Paint()
-        ..style = PaintingStyle.fill
-        ..strokeWidth = 1
-        ..color = const Color.fromARGB(20, 255, 255, 255),
+      BlendMode.dstOver,
+      Paint(),
     );
   }
 
