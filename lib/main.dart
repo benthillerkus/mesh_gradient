@@ -9,17 +9,13 @@ import 'package:mesh_gradient/picker.dart';
 import 'package:mesh_gradient/pathless.dart'
     if (dart.library.html) 'package:flutter_web_plugins/flutter_web_plugins.dart';
 
-late FragmentShader fragmentShader;
 late FragmentShader pickerFragmentShader;
 
 Future<void> main() async {
   usePathUrlStrategy();
 
-  final (fragmentProgram, pickerFragmentProgram) = await (
-    FragmentProgram.fromAsset('assets/shader.glsl'),
-    FragmentProgram.fromAsset('assets/picker.glsl')
-  ).wait;
-  fragmentShader = fragmentProgram.fragmentShader();
+  final pickerFragmentProgram =
+      await FragmentProgram.fromAsset('assets/picker.glsl');
   pickerFragmentShader = pickerFragmentProgram.fragmentShader();
   runApp(Directionality(
     textDirection: TextDirection.ltr,
@@ -103,6 +99,7 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
       return Stack(
+        clipBehavior: Clip.none,
         children: [
           Positioned.fill(
             child: CustomPaint(
@@ -116,8 +113,10 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
           for (int i = 0; i < positions.length; i++)
             for (int j = 0; j < positions[i].length; j++)
               Positioned(
-                left: (positions[i][j].x / 2 + 0.5) * constraints.biggest.width,
-                top: (positions[i][j].y / 2 + 0.5) * constraints.biggest.height,
+                left:
+                    (positions[i][j].x / 2 + 0.5) * constraints.biggest.width,
+                top: (positions[i][j].y / 2 + 0.5) *
+                    constraints.biggest.height,
                 child: Transform.translate(
                   offset: centerDotOffset,
                   child: Listener(
@@ -125,15 +124,16 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
                       setState(() {
                         final newPosition =
                             (positions[i][j].alongSize(constraints.biggest) +
-                                details.delta);
+                                    details.delta)
+                                .clamp(constraints);
                         positions[i][j] =
                             newPosition.alignmentIn(constraints.biggest);
                       });
                     },
                     child: PickerDot(
                         color: colors[i][j],
-                        dotStyle:
-                            const DotThemeData().copyWith(border: colors[i][j]),
+                        dotStyle: const DotThemeData()
+                            .copyWith(border: colors[i][j]),
                         onColorChanged: (cl) =>
                             setState(() => colors[i][j] = cl)),
                   ),
@@ -142,6 +142,15 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
         ],
       );
     });
+  }
+}
+
+extension ClampToConstraints on Offset {
+  Offset clamp(BoxConstraints constraints) {
+    return Offset(
+      dx.clamp(0, constraints.maxWidth),
+      dy.clamp(0, constraints.maxHeight),
+    );
   }
 }
 
