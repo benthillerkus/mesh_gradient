@@ -107,16 +107,15 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
                 positions,
                 colors,
                 resolution: widget.previewResolution,
+                debugGrid: false,
               ),
             ),
           ),
           for (int i = 0; i < positions.length; i++)
             for (int j = 0; j < positions[i].length; j++)
               Positioned(
-                left:
-                    (positions[i][j].x / 2 + 0.5) * constraints.biggest.width,
-                top: (positions[i][j].y / 2 + 0.5) *
-                    constraints.biggest.height,
+                left: (positions[i][j].x / 2 + 0.5) * constraints.biggest.width,
+                top: (positions[i][j].y / 2 + 0.5) * constraints.biggest.height,
                 child: Transform.translate(
                   offset: centerDotOffset,
                   child: Listener(
@@ -132,8 +131,8 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
                     },
                     child: PickerDot(
                         color: colors[i][j],
-                        dotStyle: const DotThemeData()
-                            .copyWith(border: colors[i][j]),
+                        dotStyle:
+                            const DotThemeData().copyWith(border: colors[i][j]),
                         onColorChanged: (cl) =>
                             setState(() => colors[i][j] = cl)),
                   ),
