@@ -294,7 +294,7 @@ class _MeshGradientPainter extends CustomPainter {
       final dbgPaint = Paint()..color = const Color.fromARGB(255, 0, 255, 0);
       for (int i = 0; i < evaluatedPositions.length; i += 2) {
         canvas.drawCircle(
-          Offset(evaluatedPositions[0], evaluatedPositions[1]),
+          Offset(evaluatedPositions[i], evaluatedPositions[i + 1]),
           2,
           dbgPaint,
         );
