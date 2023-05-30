@@ -6,12 +6,10 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_color_models/flutter_color_models.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:mesh_gradient/dot.dart';
-import 'package:mesh_gradient/picker.dart';
 import 'package:mesh_gradient/pathless.dart'
     if (dart.library.html) 'package:flutter_web_plugins/flutter_web_plugins.dart';
+import 'package:mesh_gradient/picker.dart';
 import 'package:url_launcher/link.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 late FragmentShader pickerFragmentShader;
 
@@ -21,18 +19,30 @@ Future<void> main() async {
   final pickerFragmentProgram =
       await FragmentProgram.fromAsset('assets/picker.glsl');
   pickerFragmentShader = pickerFragmentProgram.fragmentShader();
-  runApp(Directionality(
-    textDirection: TextDirection.ltr,
-    child: Overlay(
-      initialEntries: [
-        OverlayEntry(
-          builder: (context) {
-            return const Home();
-          },
-        )
-      ],
-    ),
-  ));
+  runApp(HookBuilder(builder: (context) {
+    final brightness = usePlatformBrightness();
+
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: DefaultTextStyle(
+        style: TextStyle(
+          color: brightness == Brightness.light
+              ? const Color.fromARGB(255, 0, 0, 0)
+              : const Color.fromARGB(255, 255, 255, 255),
+          fontSize: 16,
+        ),
+        child: Overlay(
+          initialEntries: [
+            OverlayEntry(
+              builder: (context) {
+                return const Home();
+              },
+            )
+          ],
+        ),
+      ),
+    );
+  }));
 }
 
 class Home extends HookWidget {
@@ -43,63 +53,79 @@ class Home extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final showPointCloud = useState(false);
+    final brightness = usePlatformBrightness();
 
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        mainAxisSize: MainAxisSize.max,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const Text("Mesh Gradient Configurator"),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => showPointCloud.value = !showPointCloud.value,
-                child: const FocusableActionDetector(
-                  mouseCursor: SystemMouseCursors.click,
-                  child: Text(
-                    "show point cloud",
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: RadialGradient(
+          colors: brightness == Brightness.light
+              ? [
+                  const Color.fromARGB(255, 216, 216, 216),
+                  const Color.fromARGB(255, 255, 255, 255),
+                ]
+              : [
+                  const Color.fromARGB(255, 150, 150, 150),
+                  const Color.fromARGB(255, 0, 0, 0),
+                ],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisSize: MainAxisSize.max,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Text("Mesh Gradient Configurator"),
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: () => showPointCloud.value = !showPointCloud.value,
+                  child: const FocusableActionDetector(
+                    mouseCursor: SystemMouseCursors.click,
+                    child: Text(
+                      "show point cloud",
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Expanded(
+              child: Center(
+                child: SizedBox.square(
+                  dimension: 600,
+                  child: MeshGradientConfiguration(
+                    rows: 4,
+                    columns: 4,
+                    previewResolution: 0.05,
+                    debugGrid: showPointCloud.value,
                   ),
                 ),
               ),
-            ],
-          ),
-          Expanded(
-            child: Center(
-              child: SizedBox.square(
-                dimension: 600,
-                child: MeshGradientConfiguration(
-                  rows: 4,
-                  columns: 4,
-                  previewResolution: 0.05,
-                  debugGrid: showPointCloud.value,
-                ),
-              ),
             ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Link(
-                target: LinkTarget.blank,
-                uri: Uri.https("github.com", "benthillerkus/mesh_gradient"),
-                builder: (context, fn) => GestureDetector(
-                  onTap: fn,
-                  child: const FocusableActionDetector(
-                      mouseCursor: SystemMouseCursors.click,
-                      child: Text(
-                        "benthillerkus/mesh_gradient",
-                        style: TextStyle(
-                          color: Color.fromARGB(255, 42, 100, 224),
-                          decoration: TextDecoration.underline,
-                        ),
-                      )),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Link(
+                  target: LinkTarget.blank,
+                  uri: Uri.https("github.com", "benthillerkus/mesh_gradient"),
+                  builder: (context, fn) => GestureDetector(
+                    onTap: fn,
+                    child: const FocusableActionDetector(
+                        mouseCursor: SystemMouseCursors.click,
+                        child: Text(
+                          "benthillerkus/mesh_gradient",
+                          style: TextStyle(
+                            color: Color.fromARGB(255, 42, 100, 224),
+                            decoration: TextDecoration.underline,
+                          ),
+                        )),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -320,8 +346,8 @@ class _MeshGradientPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final xRes = (size * resolution).width.toInt();
-    final yRes = (size * resolution).height.toInt();
+    final xRes = (size.width * resolution).toInt();
+    final yRes = (size.height * resolution).toInt();
 
     final surface = BezierPatchSurface(positions);
     final colorSurface = BezierPatchSurface(colors);
