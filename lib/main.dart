@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:collection/collection.dart';
@@ -234,6 +235,8 @@ class _MeshGradientPainter extends CustomPainter {
   final double resolution;
   final bool debugGrid;
 
+  static final Map<(int, int), Uint16List> _indicesCache = {};
+
   @override
   void paint(Canvas canvas, Size size) {
     final yRes = (size * resolution).width.toInt();
@@ -242,25 +245,33 @@ class _MeshGradientPainter extends CustomPainter {
     final surface = BezierPatchSurface(positions);
     final colorSurface = BezierPatchSurface(colors);
 
-    final quads = quadsFromControlPoints(yRes, xRes);
-    final evaluatedPositions = <Offset>[];
-    final evaluatedColors = <Color>[];
+    final indices = _indicesCache.putIfAbsent((yRes, xRes), () {
+      return Uint16List.fromList(
+          triangulateQuads(quadsFromControlPoints(yRes, xRes).flattened)
+              .flattened
+              .toList());
+    });
+
+    final evaluatedPositions = Float32List(yRes * xRes * 2);
+    final evaluatedColors = Int32List(yRes * xRes);
+    var epCounter = 0;
+    var ecCounter = 0;
     for (int i = 0; i < yRes; i++) {
       for (int j = 0; j < xRes; j++) {
-        evaluatedPositions.add(
-            surface.evaluate(i / (yRes - 1), j / (xRes - 1)).alongSize(size));
-        evaluatedColors
-            .add(colorSurface.evaluate(i / (yRes - 1), j / (xRes - 1)));
+        final point =
+            surface.evaluate(i / (yRes - 1), j / (xRes - 1)).alongSize(size);
+        evaluatedPositions[epCounter++] = point.dx;
+        evaluatedPositions[epCounter++] = point.dy;
+        evaluatedColors[ecCounter++] =
+            ((colorSurface.evaluate(i / (yRes - 1), j / (xRes - 1))).value);
       }
     }
 
-    final triangles = triangulateQuads(quads.flattened);
-
-    final vertices = Vertices(
+    final vertices = Vertices.raw(
       VertexMode.triangles,
       evaluatedPositions,
       colors: evaluatedColors,
-      indices: triangles.flattened.toList(),
+      indices: indices,
     );
 
     canvas.drawVertices(
@@ -271,8 +282,12 @@ class _MeshGradientPainter extends CustomPainter {
 
     if (debugGrid) {
       final dbgPaint = Paint()..color = const Color.fromARGB(255, 0, 255, 0);
-      for (final p in evaluatedPositions) {
-        canvas.drawCircle(p, 2, dbgPaint);
+      for (int i = 0; i < evaluatedPositions.length; i += 2) {
+        canvas.drawCircle(
+          Offset(evaluatedPositions[0], evaluatedPositions[1]),
+          2,
+          dbgPaint,
+        );
       }
     }
   }
