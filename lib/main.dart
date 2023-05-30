@@ -248,8 +248,8 @@ class _MeshGradientPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final yRes = (size * resolution).width.toInt();
-    final xRes = (size * resolution).height.toInt();
+    final xRes = (size * resolution).width.toInt();
+    final yRes = (size * resolution).height.toInt();
 
     final surface = BezierPatchSurface(positions);
     final colorSurface = BezierPatchSurface(colors);
