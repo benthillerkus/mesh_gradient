@@ -6,7 +6,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_color_models/flutter_color_models.dart';
 import 'package:mesh_gradient/dot.dart';
 import 'package:mesh_gradient/picker.dart';
-import 'package:flutter_web_plugins/flutter_web_plugins.dart';
+import 'package:mesh_gradient/pathless.dart'
+    if (dart.library.html) 'package:flutter_web_plugins/flutter_web_plugins.dart';
 
 late FragmentShader fragmentShader;
 late FragmentShader pickerFragmentShader;
