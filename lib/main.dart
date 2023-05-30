@@ -4,10 +4,14 @@ import 'dart:ui';
 import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_color_models/flutter_color_models.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:mesh_gradient/dot.dart';
 import 'package:mesh_gradient/picker.dart';
 import 'package:mesh_gradient/pathless.dart'
     if (dart.library.html) 'package:flutter_web_plugins/flutter_web_plugins.dart';
+import 'package:url_launcher/link.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 late FragmentShader pickerFragmentShader;
 
@@ -23,16 +27,7 @@ Future<void> main() async {
       initialEntries: [
         OverlayEntry(
           builder: (context) {
-            return const Center(
-              child: SizedBox.square(
-                dimension: 600,
-                child: MeshGradientConfiguration(
-                  rows: 4,
-                  columns: 4,
-                  previewResolution: 0.05,
-                ),
-              ),
-            );
+            return const Home();
           },
         )
       ],
@@ -40,16 +35,89 @@ Future<void> main() async {
   ));
 }
 
+class Home extends HookWidget {
+  const Home({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final showPointCloud = useState(false);
+
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.max,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Text("Mesh Gradient Configurator"),
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => showPointCloud.value = !showPointCloud.value,
+                child: const FocusableActionDetector(
+                  mouseCursor: SystemMouseCursors.click,
+                  child: Text(
+                    "show point cloud",
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Expanded(
+            child: Center(
+              child: SizedBox.square(
+                dimension: 600,
+                child: MeshGradientConfiguration(
+                  rows: 4,
+                  columns: 4,
+                  previewResolution: 0.05,
+                  debugGrid: showPointCloud.value,
+                ),
+              ),
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Link(
+                target: LinkTarget.blank,
+                uri: Uri.https("github.com", "benthillerkus/mesh_gradient"),
+                builder: (context, fn) => GestureDetector(
+                  onTap: fn,
+                  child: const FocusableActionDetector(
+                      mouseCursor: SystemMouseCursors.click,
+                      child: Text(
+                        "benthillerkus/mesh_gradient",
+                        style: TextStyle(
+                          color: Color.fromARGB(255, 42, 100, 224),
+                          decoration: TextDecoration.underline,
+                        ),
+                      )),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class MeshGradientConfiguration extends StatefulWidget {
-  const MeshGradientConfiguration(
-      {super.key,
-      this.rows = 3,
-      this.columns = 3,
-      this.previewResolution = 0.05});
+  const MeshGradientConfiguration({
+    super.key,
+    this.rows = 3,
+    this.columns = 3,
+    this.previewResolution = 0.05,
+    this.debugGrid = false,
+  });
 
   final int rows;
   final int columns;
   final double previewResolution;
+  final bool debugGrid;
 
   @override
   State<MeshGradientConfiguration> createState() =>
@@ -66,12 +134,14 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
   @override
   void didUpdateWidget(covariant MeshGradientConfiguration oldWidget) {
     super.didUpdateWidget(oldWidget);
-    fillLists();
+    if (oldWidget.rows != widget.rows || oldWidget.columns != widget.columns) {
+      fillLists();
+    }
   }
 
   void fillLists() {
-    positions = [];
-    colors = [];
+    positions.clear();
+    colors.clear();
     for (int i = 0; i < widget.rows; i++) {
       final row = <Alignment>[];
       final colorRow = <OklabColor>[];
@@ -107,7 +177,7 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
                 positions,
                 colors,
                 resolution: widget.previewResolution,
-                debugGrid: false,
+                debugGrid: widget.debugGrid,
               ),
             ),
           ),
@@ -131,8 +201,10 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
                     },
                     child: PickerDot(
                         color: colors[i][j],
-                        dotStyle:
-                            const DotThemeData().copyWith(border: colors[i][j]),
+                        dotStyle: const DotThemeData().copyWith(
+                          border: colors[i][j],
+                          cursor: SystemMouseCursors.move,
+                        ),
                         onColorChanged: (cl) =>
                             setState(() => colors[i][j] = cl)),
                   ),
@@ -254,27 +326,29 @@ class _MeshGradientPainter extends CustomPainter {
     final surface = BezierPatchSurface(positions);
     final colorSurface = BezierPatchSurface(colors);
 
+    final evaluatedPositions = Float32List(yRes * xRes * 2);
+    final evaluatedColors = Int32List(yRes * xRes);
+    {
+      var epCounter = 0;
+      var ecCounter = 0;
+      for (int i = 0; i < yRes; i++) {
+        for (int j = 0; j < xRes; j++) {
+          final point =
+              surface.evaluate(i / (yRes - 1), j / (xRes - 1)).alongSize(size);
+          evaluatedPositions[epCounter++] = point.dx;
+          evaluatedPositions[epCounter++] = point.dy;
+          evaluatedColors[ecCounter++] =
+              ((colorSurface.evaluate(i / (yRes - 1), j / (xRes - 1))).value);
+        }
+      }
+    }
+
     final indices = _indicesCache.putIfAbsent((yRes, xRes), () {
       return Uint16List.fromList(
           triangulateQuads(quadsFromControlPoints(yRes, xRes).flattened)
               .flattened
               .toList());
     });
-
-    final evaluatedPositions = Float32List(yRes * xRes * 2);
-    final evaluatedColors = Int32List(yRes * xRes);
-    var epCounter = 0;
-    var ecCounter = 0;
-    for (int i = 0; i < yRes; i++) {
-      for (int j = 0; j < xRes; j++) {
-        final point =
-            surface.evaluate(i / (yRes - 1), j / (xRes - 1)).alongSize(size);
-        evaluatedPositions[epCounter++] = point.dx;
-        evaluatedPositions[epCounter++] = point.dy;
-        evaluatedColors[ecCounter++] =
-            ((colorSurface.evaluate(i / (yRes - 1), j / (xRes - 1))).value);
-      }
-    }
 
     final vertices = Vertices.raw(
       VertexMode.triangles,
@@ -303,6 +377,7 @@ class _MeshGradientPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MeshGradientPainter oldDelegate) =>
+      debugGrid != oldDelegate.debugGrid ||
       resolution != oldDelegate.resolution ||
       !colors.equals(oldDelegate.colors) ||
       !positions.equals(oldDelegate.positions);
