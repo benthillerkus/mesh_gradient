@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -64,7 +65,7 @@ class Home extends HookWidget {
                   const Color.fromARGB(255, 255, 255, 255),
                 ]
               : [
-                  const Color.fromARGB(255, 150, 150, 150),
+                  const Color.fromARGB(255, 128, 128, 128),
                   const Color.fromARGB(255, 0, 0, 0),
                 ],
         ),
@@ -95,8 +96,8 @@ class Home extends HookWidget {
                 child: SizedBox.square(
                   dimension: 600,
                   child: MeshGradientConfiguration(
-                    rows: 4,
-                    columns: 4,
+                    rows: 5,
+                    columns: 5,
                     previewResolution: 0.05,
                     debugGrid: showPointCloud.value,
                   ),
@@ -191,52 +192,104 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
     -const DotThemeData().radius,
   );
 
+  Offset? _mousePosition;
+  (int, int)? _selectedDot;
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _MeshGradientPainter(
-                positions,
-                colors,
-                resolution: widget.previewResolution,
-                debugGrid: widget.debugGrid,
-              ),
-            ),
-          ),
-          for (int i = 0; i < positions.length; i++)
-            for (int j = 0; j < positions[i].length; j++)
-              Positioned(
-                left: (positions[i][j].x / 2 + 0.5) * constraints.biggest.width,
-                top: (positions[i][j].y / 2 + 0.5) * constraints.biggest.height,
-                child: Transform.translate(
-                  offset: centerDotOffset,
-                  child: Listener(
-                    onPointerMove: (details) {
-                      setState(() {
-                        final newPosition =
-                            (positions[i][j].alongSize(constraints.biggest) +
-                                    details.delta)
-                                .clamp(constraints);
-                        positions[i][j] =
-                            newPosition.alignmentIn(constraints.biggest);
-                      });
-                    },
-                    child: PickerDot(
-                        color: colors[i][j],
-                        dotStyle: const DotThemeData().copyWith(
-                          border: colors[i][j],
-                          cursor: SystemMouseCursors.move,
-                        ),
-                        onColorChanged: (cl) =>
-                            setState(() => colors[i][j] = cl)),
-                  ),
+      return Listener(
+        onPointerHover: (details) {
+          setState(() {
+            _mousePosition = details.localPosition;
+          });
+        },
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _MeshGradientPainter(
+                  positions,
+                  colors,
+                  resolution: widget.previewResolution,
+                  debugGrid: widget.debugGrid,
                 ),
               ),
-        ],
+            ),
+            for (int i = 0; i < positions.length; i++)
+              for (int j = 0; j < positions[i].length; j++)
+                Positioned(
+                  left:
+                      (positions[i][j].x / 2 + 0.5) * constraints.biggest.width,
+                  top: (positions[i][j].y / 2 + 0.5) *
+                      constraints.biggest.height,
+                  child: Transform.translate(
+                    offset: centerDotOffset,
+                    child: Listener(
+                      onPointerMove: (details) {
+                        setState(
+                          () {
+                            final newPosition = (positions[i][j]
+                                        .alongSize(constraints.biggest) +
+                                    details.delta)
+                                .clamp(constraints);
+                            positions[i][j] =
+                                newPosition.alignmentIn(constraints.biggest);
+                            // also update the _mousePosition for the hover effect
+                            _mousePosition = _mousePosition! + details.delta;
+                          },
+                        );
+                      },
+                      child: AnimatedScale(
+                        filterQuality: FilterQuality.low,
+                        duration: const Duration(milliseconds: 100),
+                        scale: switch ((_mousePosition, _selectedDot)) {
+                          (null, null) => 1,
+                          (_, (int ii, int jj)) =>
+                            (ii == i && jj == j) ? 1 : 0.2,
+                          (Offset mousePosition, _) => () {
+                              final distanceX = (mousePosition.dx -
+                                      (positions[i][j].x / 2 + 0.5) *
+                                          constraints.biggest.width)
+                                  .abs();
+                              final distanceY = (mousePosition.dy -
+                                      (positions[i][j].y / 2 + 0.5) *
+                                          constraints.biggest.height)
+                                  .abs();
+                              final distance =
+                                  Offset(distanceX, distanceY).distanceSquared;
+                              final distanceNormalized = distance /
+                                  constraints.biggest
+                                      .bottomRight(Offset.zero)
+                                      .distanceSquared;
+                              return max(0.2, 1 - distanceNormalized * 10);
+                            }()
+                        },
+                        child: PickerDot(
+                          color: colors[i][j],
+                          dotStyle: const DotThemeData().copyWith(
+                            border: colors[i][j],
+                            cursor: SystemMouseCursors.move,
+                          ),
+                          onSelectionStateChanged: (isSelecting) => setState(
+                            () {
+                              if (isSelecting) {
+                                _selectedDot = (i, j);
+                              } else {
+                                _selectedDot = null;
+                              }
+                            },
+                          ),
+                          onColorChanged: (cl) =>
+                              setState(() => colors[i][j] = cl),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+          ],
+        ),
       );
     });
   }

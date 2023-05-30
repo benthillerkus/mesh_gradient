@@ -40,26 +40,30 @@ class Dot extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hover = useState(false);
-    final hasFocus = useState(false);
+    final fillColor = useState(style.fill);
 
     return GestureDetector(
       onTap: onTap,
       child: FocusableActionDetector(
-        autofocus: true,
-        onShowHoverHighlight: (value) => hover.value = value,
-        onShowFocusHighlight: (value) => hasFocus.value = value,
+        onShowHoverHighlight: (value) =>
+            fillColor.value = value ? style.fill.withAlpha(170) : style.fill,
         mouseCursor: style.cursor,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-              color: switch ((hover.value, hasFocus.value)) {
-                (true, false) => style.fill.withAlpha(170),
-                (_, true) => style.fill.withAlpha(200),
-                (false, false) => style.fill.withAlpha(120),
-              },
-              border: Border.all(color: style.border, width: style.thickness),
-              shape: BoxShape.circle),
-          child: SizedBox.square(dimension: style.radius * 2),
+        child: TweenAnimationBuilder(
+          tween: ColorTween(
+              begin: usePrevious(fillColor.value), end: fillColor.value),
+          duration: const Duration(milliseconds: 200),
+          builder: (context, value, child) => DecoratedBox(
+            decoration: BoxDecoration(
+                color: value,
+                border: Border.all(
+                    color: style.border,
+                    width: style.thickness,
+                    style: style.thickness == 0
+                        ? BorderStyle.none
+                        : BorderStyle.solid),
+                shape: BoxShape.circle),
+            child: SizedBox.square(dimension: style.radius * 2),
+          ),
         ),
       ),
     );

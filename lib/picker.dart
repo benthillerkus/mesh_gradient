@@ -13,11 +13,13 @@ class PickerDot extends HookWidget {
       required this.color,
       required this.onColorChanged,
       this.dotStyle = const DotThemeData(),
+      this.onSelectionStateChanged,
       this.pickerRadius = 100});
 
   final DotThemeData dotStyle;
   final OklabColor color;
   final void Function(OklabColor) onColorChanged;
+  final void Function(bool isSelecting)? onSelectionStateChanged;
   final double pickerRadius;
 
   void handleWheelInteraction(Offset position) {
@@ -31,6 +33,11 @@ class PickerDot extends HookWidget {
     final controller = useMemoized(OverlayPortalController.new);
     final link = useMemoized(LayerLink.new);
 
+    void toggle() {
+      controller.toggle();
+      onSelectionStateChanged?.call(controller.isShowing);
+    }
+
     return OverlayPortal(
       controller: controller,
       // The LayoutBuilder is just there to ensure that resizing the window will recalculate the keepOnScreen offset
@@ -42,7 +49,7 @@ class PickerDot extends HookWidget {
               Positioned.fill(
                 child: GestureDetector(
                   behavior: HitTestBehavior.translucent,
-                  onTap: controller.toggle,
+                  onTap: toggle,
                   // For some reason the DecoratedBox is needed, otherwise the Size of the Layout will be 0
                   child: const DecoratedBox(
                     decoration: BoxDecoration(),
@@ -64,7 +71,7 @@ class PickerDot extends HookWidget {
                         (pickerRadius - dotStyle.radius * 2 - 8)) {
                       handleWheelInteraction(details.localPosition);
                     } else {
-                      controller.toggle();
+                      toggle();
                     }
                   },
                   onPointerMove: (details) {
@@ -80,11 +87,15 @@ class PickerDot extends HookWidget {
                         stroke: dotStyle.radius * 2,
                       ),
                       child: Align(
-                          alignment:
-                              Alignment(cos(color.lch.hue), sin(color.lch.hue)),
-                          child: Dot(
-                            style: dotStyle,
-                          )),
+                        alignment:
+                            Alignment(cos(color.lch.hue), sin(color.lch.hue)),
+                        child: Dot(
+                          style: dotStyle.copyWith(
+                            fill: const Color.fromARGB(170, 255, 255, 255),
+                            border: const Color.fromARGB(255, 255, 255, 255),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -97,7 +108,7 @@ class PickerDot extends HookWidget {
         link: link,
         child: Dot(
           style: dotStyle,
-          onTap: controller.toggle,
+          onTap: toggle,
         ),
       ),
     );
