@@ -199,16 +199,22 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
       return MouseRegion(
-        onHover: (event) =>
-            setState(() => _mousePosition = event.localPosition),
-        onExit: (event) => setState(() {
+        onHover: (event) {
+          if (event.kind == PointerDeviceKind.mouse ||
+              event.kind == PointerDeviceKind.trackpad) {
+            setState(() => _mousePosition = event.localPosition);
+          }
+        },
+        onExit: (event) {
           if (event.localPosition.dx <= 0 ||
               event.localPosition.dx >= constraints.biggest.width ||
               event.localPosition.dy <= 0 ||
               event.localPosition.dy >= constraints.biggest.height) {
-            _mousePosition = null;
+            setState(() {
+              _mousePosition = null;
+            });
           }
-        }),
+        },
         child: Stack(
           clipBehavior: Clip.none,
           children: [
