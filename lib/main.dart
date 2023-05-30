@@ -242,9 +242,13 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
                             positions[i][j] =
                                 newPosition.alignmentIn(constraints.biggest);
                             // also update the _mousePosition for the hover effect
-                            _mousePosition = _mousePosition == null
-                                ? details.localPosition
-                                : _mousePosition! + details.delta;
+                            if (_mousePosition != null) {
+                              _mousePosition = _mousePosition! + details.delta;
+                            }
+                            if (details.kind == PointerDeviceKind.touch ||
+                                details.kind == PointerDeviceKind.stylus) {
+                              _mousePosition = null;
+                            }
                           },
                         );
                       },
