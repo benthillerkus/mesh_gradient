@@ -198,12 +198,17 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      return Listener(
-        onPointerHover: (details) {
-          setState(() {
-            _mousePosition = details.localPosition;
-          });
-        },
+      return MouseRegion(
+        onHover: (event) =>
+            setState(() => _mousePosition = event.localPosition),
+        onExit: (event) => setState(() {
+          if (event.localPosition.dx <= 0 ||
+              event.localPosition.dx >= constraints.biggest.width ||
+              event.localPosition.dy <= 0 ||
+              event.localPosition.dy >= constraints.biggest.height) {
+            _mousePosition = null;
+          }
+        }),
         child: Stack(
           clipBehavior: Clip.none,
           children: [
@@ -237,7 +242,9 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
                             positions[i][j] =
                                 newPosition.alignmentIn(constraints.biggest);
                             // also update the _mousePosition for the hover effect
-                            _mousePosition = _mousePosition! + details.delta;
+                            _mousePosition = _mousePosition == null
+                                ? details.localPosition
+                                : _mousePosition! + details.delta;
                           },
                         );
                       },
