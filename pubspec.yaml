@@ -1,5 +1,13 @@
 name: mesh_gradient
-description: A new Flutter project.
+description: Render custom mesh gradients in real time.
+repository: https://github.com/benthillerkus/mesh_gradient
+homepage: https://benthillerkus.github.io/mesh_gradient
+issue_tracker: https://github.com/benthillerkus/mesh_gradient/issues
+topics:
+  - ui
+  - widgets
+  - shader
+  - color
 version: 1.0.0+1
 
 environment:
