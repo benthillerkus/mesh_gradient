@@ -25,7 +25,7 @@ https://github.com/benthillerkus/mesh_gradient/assets/29630575/065d6d75-ec9b-4e6
 
 I mocked up what I had in mind in Blender and used the [subdivision surface modifier](https://docs.blender.org/manual/en/dev/modeling/modifiers/generate/subdivision_surface.html#subdivision-surface-modifier) to transform a sparse mesh (the control points) into a nice looking result. Blender uses the [Catmull-Clark algorithm](https://en.wikipedia.org/wiki/Catmull%E2%80%93Clark_subdivision_surface) -- so that's what I tried to implement first. Aaaaand I failed! While the algorithm is deceptively simple, it requires lots of book-keeping of which vertex is adjacent to which face and which edge neighbors which newly created point and the likes.
 
-![blender_2023-05-31_23-35-44](https://github.com/benthillerkus/mesh_gradient/assets/29630575/bcd581ca-2d5b-40c0-a532-7f2312685443)
+![blender screenshot](https://github.com/benthillerkus/mesh_gradient/assets/29630575/bcd581ca-2d5b-40c0-a532-7f2312685443)
 
 And while I could've (should've) just copied an existing implementation and their data structure, I instead asked ChatGPT with the broad problem definition and it suggested using DeCasteljau's Algorithm. I had a look at [Wikipedia](https://de.wikipedia.org/wiki/Bezierfl%C3%A4che), saw a bunch of big words and as soon as the MathJax loaded in, I hasted back and prompted for an implementation in Java - which miraculously turned out to be correct and worked nicely with the helper methods I had already written.
 I had to touch up the code a bit and add some caching to optimize the way I'm using the datastructure, but yeah, this kind of saved the day for me.
@@ -33,3 +33,8 @@ I had to touch up the code a bit and add some caching to optimize the way I'm us
 *as I'm writing this up, I realize that the [English Wikipedia for the algorithm itself](https://en.wikipedia.org/wiki/De_Casteljau%27s_algorithm) is much more explanative and even comes with code samples. Oh well.*
 
 In the future it'd be nice to switch to something more [sophisticated](https://twinside.github.io/coon_rendering.html#what-is-a-gradient-mesh) or even get regular subdivision surfaces working, because I find the control points to be overly soft currently. The effect looks best when there are big contrasts in sharpness / density and with the current setup, you have to move the points quite far to get even moderately extreme results.
+
+
+
+https://github.com/benthillerkus/mesh_gradient/assets/29630575/5a5995d0-4987-4fa4-a2f2-22b2855d2f41
+At this point I was still experimenting with fragment shaders and hadn't settled for a direction yet...
