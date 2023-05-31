@@ -29,6 +29,5 @@ dev_dependencies:
 
 flutter:
   shaders:
-    - "assets/shader.glsl"
     - "assets/oklch.glsl"
     - "assets/picker.glsl"
