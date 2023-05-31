@@ -37,4 +37,5 @@ In the future it'd be nice to switch to something more [sophisticated](https://t
 
 
 https://github.com/benthillerkus/mesh_gradient/assets/29630575/5a5995d0-4987-4fa4-a2f2-22b2855d2f41
+
 At this point I was still experimenting with fragment shaders and hadn't settled for a direction yet...
