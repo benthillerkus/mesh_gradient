@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_color_models/flutter_color_models.dart';
 import 'package:mesh_gradient/dot.dart';
@@ -103,6 +104,13 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
                   resolution: widget.previewResolution,
                   debugGrid: widget.debugGrid,
                 ),
+                foregroundPainter:
+                    (_mousePosition == null || _selectedDot != null)
+                        ? null
+                        : IsoLinePainter(
+                            positions,
+                            _mousePosition!.alignmentIn(constraints.biggest),
+                          ),
               ),
             ),
             for (int i = 0; i < positions.length; i++)
@@ -187,4 +195,59 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
       );
     });
   }
+}
+
+class IsoLinePainter extends CustomPainter {
+  final List<List<Alignment>> controlPoints;
+  final Alignment centerPoint;
+  final int segments;
+
+  const IsoLinePainter(this.controlPoints, this.centerPoint,
+      {this.segments = 36});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final surface = BezierPatchSurface(controlPoints);
+
+    for (final (radius: radius, strokeWidth: strokeWidth, alpha: alpha)
+        in <({double radius, double strokeWidth, int alpha})>[
+      (radius: 0.18, strokeWidth: 1, alpha: 32),
+      (radius: 0.29, strokeWidth: 1, alpha: 16),
+      (radius: 0.40, strokeWidth: 1, alpha: 8),
+      (radius: 0.51, strokeWidth: 1, alpha: 4),
+      (radius: 0.61, strokeWidth: 1, alpha: 2),
+    ]) {
+      final path = Path();
+
+      var moved = false;
+      for (int i = 0; i <= segments; i++) {
+        final angle = i / segments * 2 * pi;
+        final evaluationOffset =
+            Alignment(cos(angle), sin(angle)) * radius + centerPoint;
+        final evaluatedPoint = surface
+            .evaluate(
+                evaluationOffset.y / 2 + 0.5, evaluationOffset.x / 2 + 0.5)
+            .alongSize(size);
+        if (moved) {
+          path.lineTo(evaluatedPoint.dx, evaluatedPoint.dy);
+        } else {
+          path.moveTo(evaluatedPoint.dx, evaluatedPoint.dy);
+          moved = true;
+        }
+      }
+
+      canvas.drawPath(
+          path,
+          Paint()
+            ..color = Color.fromARGB(alpha, 0, 0, 0)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = strokeWidth);
+    }
+  }
+
+  @override
+  bool shouldRepaint(IsoLinePainter oldDelegate) =>
+      segments != oldDelegate.segments ||
+      centerPoint != oldDelegate.centerPoint ||
+      !controlPoints.equals(oldDelegate.controlPoints);
 }
