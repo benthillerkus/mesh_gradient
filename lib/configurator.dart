@@ -54,7 +54,11 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
           (j / (widget.columns - 1)) * 2 - 1,
           (i / (widget.rows - 1)) * 2 - 1,
         ));
-        colorRow.add(const OklabColor(1, 0.1, 0));
+        colorRow.add(HslColor.random(
+          seed: i * widget.rows + j,
+          minLightness: 5,
+          minSaturation: 50,
+        ).toOklabColor());
       }
       positions.add(row);
       colors.add(colorRow);

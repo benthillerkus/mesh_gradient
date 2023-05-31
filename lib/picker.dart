@@ -1,37 +1,52 @@
 import 'dart:math';
 
 import 'package:flutter/widgets.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:mesh_gradient/extensions.dart';
-import 'package:mesh_gradient/dot.dart';
-import 'package:mesh_gradient/main.dart';
 import 'package:flutter_color_models/flutter_color_models.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:mesh_gradient/dot.dart';
+import 'package:mesh_gradient/extensions.dart';
+import 'package:mesh_gradient/main.dart';
 
 class PickerDot extends HookWidget {
-  const PickerDot(
-      {super.key,
-      required this.color,
-      required this.onColorChanged,
-      this.dotStyle = const DotThemeData(),
-      this.onSelectionStateChanged,
-      this.pickerRadius = 100});
+  const PickerDot({
+    super.key,
+    required this.color,
+    required this.onColorChanged,
+    this.dotStyle = const DotThemeData(),
+    this.onSelectionStateChanged,
+    this.pickerRadius = 100,
+    this.smallerBarRadius = 12,
+  });
 
   final DotThemeData dotStyle;
   final OklabColor color;
   final void Function(OklabColor) onColorChanged;
   final void Function(bool isSelecting)? onSelectionStateChanged;
   final double pickerRadius;
+  final double smallerBarRadius;
+  double get adjustedPickerRadius =>
+      pickerRadius + Offset(color.a, color.b).distance * 180;
 
   void handleChromaInteraction(Offset position) {
-    final angle = atan2(position.dy - pickerRadius, position.dx - pickerRadius);
-    final c = sqrt(color.a * color.a + color.b * color.b);
+    final normalizedPosition = position -
+        Offset(adjustedPickerRadius, adjustedPickerRadius) -
+        Offset(smallerBarRadius, smallerBarRadius);
+    final angle = normalizedPosition.direction;
+
+    final double c;
+    if (false) {
+      c = min((position.distance - pickerRadius) / 180, 0.9);
+    } else {
+      c = sqrt(color.a * color.a + color.b * color.b);
+    }
     onColorChanged(OklabColor(color.lightness, cos(angle) * c, sin(angle) * c));
   }
 
   void handleLuminanceInteraction(Offset position) {
-    final angle =
-        (atan2(position.dy - pickerRadius, position.dx - pickerRadius)) %
-            (2 * pi);
+    final normalizedPosition = position -
+        Offset(adjustedPickerRadius, adjustedPickerRadius) -
+        Offset(smallerBarRadius, smallerBarRadius);
+    final angle = normalizedPosition.direction % (2 * pi);
     onColorChanged(OklabColor(
         pow(angle / (pi * 2), 1 / 2.2).toDouble(), color.a, color.b));
   }
@@ -78,16 +93,20 @@ class PickerDot extends HookWidget {
                     behavior: HitTestBehavior.opaque,
                     onPointerDown: (details) {
                       final distance = (details.localPosition -
-                              Offset(pickerRadius + 12, pickerRadius + 12))
+                              Offset(adjustedPickerRadius + smallerBarRadius,
+                                  adjustedPickerRadius + smallerBarRadius))
                           .distance;
-                      if (distance > pickerRadius && editInnerWheel.value) {
+                      if (distance > adjustedPickerRadius &&
+                          editInnerWheel.value) {
                         editInnerWheel.value = false;
                       } else if (distance <
-                              (pickerRadius - dotStyle.radius * 2) &&
+                              (adjustedPickerRadius - dotStyle.radius * 2) &&
                           !editInnerWheel.value) {
                         editInnerWheel.value = true;
                       } else if (distance >
-                          (pickerRadius - dotStyle.radius * 2 - 12)) {
+                          (adjustedPickerRadius -
+                              dotStyle.radius * 2 -
+                              smallerBarRadius)) {
                         if (editInnerWheel.value) {
                           handleChromaInteraction(details.localPosition);
                         } else {
@@ -107,9 +126,9 @@ class PickerDot extends HookWidget {
                       }
                     },
                     child: Padding(
-                      padding: const EdgeInsets.all(12),
+                      padding: EdgeInsets.all(smallerBarRadius),
                       child: SizedBox.square(
-                        dimension: pickerRadius * 2,
+                        dimension: adjustedPickerRadius * 2,
                         child: TweenAnimationBuilder(
                           duration: const Duration(milliseconds: 300),
                           tween: Tween<double>(
@@ -120,7 +139,7 @@ class PickerDot extends HookWidget {
                             painter: PickerPainter(
                               color.lch,
                               stroke: dotStyle.radius * 2,
-                              minStroke: 12,
+                              minStroke: smallerBarRadius,
                               selectorBalance: value,
                             ),
                             child: child,
