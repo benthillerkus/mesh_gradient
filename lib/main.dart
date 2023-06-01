@@ -23,11 +23,10 @@ Future<void> main() async {
       textDirection: TextDirection.ltr,
       child: DefaultTextStyle(
         style: GoogleFonts.vt323(
-          fontSize: 20,
-          color: brightness == Brightness.light
-              ? const Color.fromARGB(255, 0, 0, 0)
-              : const Color.fromARGB(255, 255, 255, 255),
-        ),
+            fontSize: 20,
+            color: brightness == Brightness.light
+                ? const Color.fromARGB(255, 0, 0, 0)
+                : const Color.fromARGB(255, 255, 255, 255)),
         child: Overlay(
           initialEntries: [
             OverlayEntry(
@@ -51,6 +50,8 @@ class Home extends HookWidget {
   Widget build(BuildContext context) {
     final showPointCloud = useState(false);
     final brightness = usePlatformBrightness();
+    final rows = useState(3);
+    final columns = useState(3);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -85,14 +86,36 @@ class Home extends HookWidget {
                 ),
               ),
             ),
-            Row(
+            Wrap(
+              alignment: WrapAlignment.spaceAround,
+              spacing: 16,
               children: [
                 GestureDetector(
                   onTap: () => showPointCloud.value = !showPointCloud.value,
-                  child: const FocusableActionDetector(
+                  child: FocusableActionDetector(
                     mouseCursor: SystemMouseCursors.click,
                     child: Text(
-                      "show point cloud",
+                      "${showPointCloud.value ? "hide" : "show"} point cloud",
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onVerticalDragUpdate: (details) => rows.value =
+                      (rows.value - details.delta.dy.toInt()).clamp(2, 12),
+                  child: FocusableActionDetector(
+                    mouseCursor: SystemMouseCursors.resizeRow,
+                    child: Text(
+                      "${rows.value.toString().padLeft(2)} rows",
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onHorizontalDragUpdate: (details) => columns.value =
+                      (columns.value + details.delta.dx.toInt()).clamp(2, 12),
+                  child: FocusableActionDetector(
+                    mouseCursor: SystemMouseCursors.resizeColumn,
+                    child: Text(
+                      "${columns.value.toString().padLeft(2)} columns",
                     ),
                   ),
                 ),
@@ -103,8 +126,8 @@ class Home extends HookWidget {
                 child: SizedBox.square(
                   dimension: 600,
                   child: MeshGradientConfiguration(
-                    rows: 5,
-                    columns: 5,
+                    rows: rows.value,
+                    columns: columns.value,
                     previewResolution: 0.05,
                     debugGrid: showPointCloud.value,
                   ),
