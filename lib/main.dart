@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:mesh_gradient/configurator.dart';
 import 'package:mesh_gradient/pathless.dart'
     if (dart.library.html) 'package:flutter_web_plugins/flutter_web_plugins.dart';
@@ -21,11 +22,11 @@ Future<void> main() async {
     return Directionality(
       textDirection: TextDirection.ltr,
       child: DefaultTextStyle(
-        style: TextStyle(
+        style: GoogleFonts.vt323(
+          fontSize: 20,
           color: brightness == Brightness.light
               ? const Color.fromARGB(255, 0, 0, 0)
               : const Color.fromARGB(255, 255, 255, 255),
-          fontSize: 16,
         ),
         child: Overlay(
           initialEntries: [
@@ -66,13 +67,24 @@ class Home extends HookWidget {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text("Mesh Gradient Configurator"),
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 32),
+              child: Text(
+                "Mesh Gradient Configurator",
+                style: GoogleFonts.pirataOne(
+                  fontSize: 36,
+                  color: brightness == Brightness.light
+                      ? const Color.fromARGB(255, 0, 0, 0)
+                      : const Color.fromARGB(255, 255, 255, 255),
+                ),
+              ),
+            ),
             Row(
               children: [
                 GestureDetector(
@@ -112,7 +124,7 @@ class Home extends HookWidget {
                         child: Text(
                           "benthillerkus/mesh_gradient",
                           style: TextStyle(
-                            color: Color.fromARGB(255, 42, 100, 224),
+                            color: Color.fromARGB(255, 87, 126, 209),
                             decoration: TextDecoration.underline,
                           ),
                         )),
