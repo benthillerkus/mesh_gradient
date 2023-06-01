@@ -25,21 +25,23 @@ class PickerDot extends HookWidget {
   final double pickerRadius;
   final double smallerBarRadius;
   double get adjustedPickerRadius =>
-      pickerRadius + Offset(color.a, color.b).distance * 180;
+      pickerRadius + Offset(color.a, color.b).distance * 120;
 
   void handleChromaInteraction(Offset position, {Offset? delta}) {
-    final angle = position.direction;
+    var angle = position.direction;
 
     var c = Offset(color.a, color.b).distance;
     if (delta != null) {
       if (position.distance > adjustedPickerRadius) {
-        c += delta.distance * 2 / 180;
+        c += delta.distance * 3 / 120;
+        angle = Offset(color.a, color.b).direction;
       } else if (position.distance <
           adjustedPickerRadius - dotStyle.radius * 2) {
-        c -= delta.distance * 2 / 180;
+        c -= delta.distance * 3 / 120;
+        angle = Offset(color.a, color.b).direction;
       }
     }
-    c = c.clamp(0, 1);
+    c = c.clamp(0.01, 0.75);
     onColorChanged(OklabColor(color.lightness, cos(angle) * c, sin(angle) * c));
   }
 
