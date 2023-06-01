@@ -27,26 +27,24 @@ class PickerDot extends HookWidget {
   double get adjustedPickerRadius =>
       pickerRadius + Offset(color.a, color.b).distance * 180;
 
-  void handleChromaInteraction(Offset position) {
-    final normalizedPosition = position -
-        Offset(adjustedPickerRadius, adjustedPickerRadius) -
-        Offset(smallerBarRadius, smallerBarRadius);
-    final angle = normalizedPosition.direction;
+  void handleChromaInteraction(Offset position, {Offset? delta}) {
+    final angle = position.direction;
 
-    final double c;
-    if (false) {
-      c = min((position.distance - pickerRadius) / 180, 0.9);
-    } else {
-      c = sqrt(color.a * color.a + color.b * color.b);
+    var c = Offset(color.a, color.b).distance;
+    if (delta != null) {
+      if (position.distance > adjustedPickerRadius) {
+        c += delta.distance * 2 / 180;
+      } else if (position.distance <
+          adjustedPickerRadius - dotStyle.radius * 2) {
+        c -= delta.distance * 2 / 180;
+      }
     }
+    c = c.clamp(0, 1);
     onColorChanged(OklabColor(color.lightness, cos(angle) * c, sin(angle) * c));
   }
 
   void handleLuminanceInteraction(Offset position) {
-    final normalizedPosition = position -
-        Offset(adjustedPickerRadius, adjustedPickerRadius) -
-        Offset(smallerBarRadius, smallerBarRadius);
-    final angle = normalizedPosition.direction % (2 * pi);
+    final angle = position.direction % (2 * pi);
     onColorChanged(OklabColor(
         pow(angle / (pi * 2), 1 / 2.2).toDouble(), color.a, color.b));
   }
@@ -107,10 +105,13 @@ class PickerDot extends HookWidget {
                           (adjustedPickerRadius -
                               dotStyle.radius * 2 -
                               smallerBarRadius)) {
+                        final normalizedPosition = details.localPosition -
+                            Offset(adjustedPickerRadius, adjustedPickerRadius) -
+                            Offset(smallerBarRadius, smallerBarRadius);
                         if (editInnerWheel.value) {
-                          handleChromaInteraction(details.localPosition);
+                          handleChromaInteraction(normalizedPosition);
                         } else {
-                          handleLuminanceInteraction(details.localPosition);
+                          handleLuminanceInteraction(normalizedPosition);
                         }
                       } else {
                         toggle();
@@ -118,10 +119,14 @@ class PickerDot extends HookWidget {
                     },
                     onPointerMove: (details) {
                       if (controller.isShowing) {
+                        final normalizedPosition = details.localPosition -
+                            Offset(adjustedPickerRadius, adjustedPickerRadius) -
+                            Offset(smallerBarRadius, smallerBarRadius);
                         if (editInnerWheel.value) {
-                          handleChromaInteraction(details.localPosition);
+                          handleChromaInteraction(normalizedPosition,
+                              delta: details.localDelta);
                         } else {
-                          handleLuminanceInteraction(details.localPosition);
+                          handleLuminanceInteraction(normalizedPosition);
                         }
                       }
                     },
