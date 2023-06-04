@@ -61,10 +61,52 @@ class PickerDot extends HookWidget {
     final link = useMemoized(LayerLink.new);
     final editInnerWheel = useState(true);
     final previousEditInnerWheel = usePrevious(editInnerWheel.value);
+    final cursor = useState(SystemMouseCursors.precise);
+    final hintModeSwitch = useState(false);
 
     void toggle() {
       controller.toggle();
       onSelectionStateChanged?.call(controller.isShowing);
+    }
+
+    void handlePointerAt(Offset position,
+        {void Function(Offset normalized)? outerRingSmall,
+        void Function(Offset normalized)? outerRing,
+        void Function(Offset normalized)? ringSmall,
+        void Function(Offset normalized)? ring,
+        void Function(Offset normalized)? outside}) {
+      final distance = (position -
+              Offset(adjustedPickerRadius + smallerBarRadius,
+                  adjustedPickerRadius + smallerBarRadius))
+          .distance;
+      final normalizedPosition = position -
+          Offset(adjustedPickerRadius, adjustedPickerRadius) -
+          Offset(smallerBarRadius, smallerBarRadius);
+      if (distance > adjustedPickerRadius && editInnerWheel.value) {
+        if (outerRingSmall != null) {
+          outerRingSmall(normalizedPosition);
+        }
+      } else if (distance < (adjustedPickerRadius - dotStyle.radius * 2) &&
+          !editInnerWheel.value) {
+        if (ringSmall != null) {
+          ringSmall(normalizedPosition);
+        }
+      } else if (distance >
+          (adjustedPickerRadius - dotStyle.radius * 2 - smallerBarRadius)) {
+        if (editInnerWheel.value) {
+          if (ring != null) {
+            ring(normalizedPosition);
+          }
+        } else {
+          if (outerRing != null) {
+            outerRing(normalizedPosition);
+          }
+        }
+      } else {
+        if (outside != null) {
+          outside(normalizedPosition);
+        }
+      }
     }
 
     return OverlayPortal(
@@ -116,39 +158,34 @@ class PickerDot extends HookWidget {
                 offset: keepOnScreen,
                 link: link,
                 child: MouseRegion(
-                  cursor: SystemMouseCursors.precise,
+                  cursor: cursor.value,
+                  onHover: (details) => handlePointerAt(details.localPosition,
+                      outerRingSmall: (_) {
+                    cursor.value = SystemMouseCursors.click;
+                    hintModeSwitch.value = true;
+                  }, ringSmall: (_) {
+                    cursor.value = SystemMouseCursors.click;
+                    hintModeSwitch.value = true;
+                  }, outerRing: (_) {
+                    cursor.value = SystemMouseCursors.precise;
+                    hintModeSwitch.value = false;
+                  }, ring: (_) {
+                    cursor.value = SystemMouseCursors.precise;
+                    hintModeSwitch.value = false;
+                  }),
                   child: Listener(
                     behavior: HitTestBehavior.opaque,
-                    onPointerDown: (details) {
-                      final distance = (details.localPosition -
-                              Offset(adjustedPickerRadius + smallerBarRadius,
-                                  adjustedPickerRadius + smallerBarRadius))
-                          .distance;
-                      if (distance > adjustedPickerRadius &&
-                          editInnerWheel.value) {
-                        editInnerWheel.value = false;
-                      } else if (distance <
-                              (adjustedPickerRadius - dotStyle.radius * 2) &&
-                          !editInnerWheel.value) {
-                        editInnerWheel.value = true;
-                      } else if (distance >
-                          (adjustedPickerRadius -
-                              dotStyle.radius * 2 -
-                              smallerBarRadius)) {
-                        final normalizedPosition = details.localPosition -
-                            Offset(adjustedPickerRadius, adjustedPickerRadius) -
-                            Offset(smallerBarRadius, smallerBarRadius);
-                        if (editInnerWheel.value) {
-                          handleChromaInteraction(normalizedPosition);
-                        } else {
-                          handleLuminanceInteraction(normalizedPosition);
-                        }
-                      } else {
-                        toggle();
-                      }
-                    },
+                    onPointerDown: (details) => handlePointerAt(
+                      details.localPosition,
+                      outerRingSmall: (_) => editInnerWheel.value = false,
+                      ringSmall: (_) => editInnerWheel.value = true,
+                      outerRing: handleLuminanceInteraction,
+                      ring: handleChromaInteraction,
+                      outside: (_) => toggle(),
+                    ),
                     onPointerMove: (details) {
                       if (controller.isShowing) {
+                        hintModeSwitch.value = false;
                         final normalizedPosition = details.localPosition -
                             Offset(adjustedPickerRadius, adjustedPickerRadius) -
                             Offset(smallerBarRadius, smallerBarRadius);
@@ -179,7 +216,11 @@ class PickerDot extends HookWidget {
                             ),
                             child: child,
                           ),
-                          child: Align(
+                          child: AnimatedAlign(
+                            duration: hintModeSwitch.value
+                                ? const Duration(milliseconds: 300)
+                                : Duration.zero,
+                            curve: Curves.ease,
                             alignment: editInnerWheel.value
                                 ? Alignment(
                                     cos(color.lch.hue), sin(color.lch.hue))
