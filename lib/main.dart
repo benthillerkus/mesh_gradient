@@ -6,7 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mesh_gradient/configurator.dart';
 import 'package:mesh_gradient/pathless.dart'
     if (dart.library.html) 'package:flutter_web_plugins/flutter_web_plugins.dart';
+import 'package:mesh_gradient/pseudo_elements.dart';
 import 'package:url_launcher/link.dart';
+import 'package:vector_graphics/vector_graphics.dart';
 
 late FragmentShader pickerFragmentShader;
 
@@ -46,6 +48,8 @@ class Home extends HookWidget {
     super.key,
   });
 
+  final tribalAssetLoader = const AssetBytesLoader("assets/tribal.svg.vec");
+
   @override
   Widget build(BuildContext context) {
     final showPointCloud = useState(false);
@@ -74,52 +78,84 @@ class Home extends HookWidget {
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 8, bottom: 32),
-              child: Text(
-                "Mesh Gradient Configurator",
-                style: GoogleFonts.pirataOne(
-                  fontSize: 36,
-                  color: brightness == Brightness.light
-                      ? const Color.fromARGB(255, 0, 0, 0)
-                      : const Color.fromARGB(255, 255, 255, 255),
-                ),
-              ),
-            ),
-            Wrap(
-              alignment: WrapAlignment.spaceAround,
-              spacing: 16,
-              children: [
-                GestureDetector(
-                  onTap: () => showPointCloud.value = !showPointCloud.value,
-                  child: FocusableActionDetector(
-                    mouseCursor: SystemMouseCursors.click,
-                    child: Text(
-                      "${showPointCloud.value ? "hide" : "show"} point cloud",
-                    ),
+            SizedBox(
+              height: 150,
+              width: 600,
+              child: Builder(builder: (context) {
+                return PseudoElements(
+                  gap: 60,
+                  before: Transform.rotate(
+                    angle: -0.25,
+                    alignment: Alignment.topRight,
+                    child: VectorGraphic(
+                        alignment: Alignment.centerRight,
+                        loader: tribalAssetLoader),
                   ),
-                ),
-                GestureDetector(
-                  onVerticalDragUpdate: (details) => rows.value =
-                      (rows.value - details.delta.dy.toInt()).clamp(2, 12),
-                  child: FocusableActionDetector(
-                    mouseCursor: SystemMouseCursors.resizeRow,
-                    child: Text(
-                      "${rows.value.toString().padLeft(2)} rows",
-                    ),
+                  after: Transform.flip(
+                      flipX: true,
+                      child: Transform.rotate(
+                        angle: -0.25,
+                        alignment: Alignment.topRight,
+                        child: VectorGraphic(
+                            alignment: Alignment.centerRight,
+                            loader: tribalAssetLoader),
+                      )),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Mesh Gradient Configurator",
+                        maxLines: 2,
+                        style: GoogleFonts.pirataOne(
+                          fontSize: 36,
+                          color: brightness == Brightness.light
+                              ? const Color.fromARGB(255, 0, 0, 0)
+                              : const Color.fromARGB(255, 255, 255, 255),
+                        ),
+                      ),
+                      Wrap(
+                        alignment: WrapAlignment.spaceAround,
+                        spacing: 16,
+                        children: [
+                          GestureDetector(
+                            onTap: () =>
+                                showPointCloud.value = !showPointCloud.value,
+                            child: FocusableActionDetector(
+                              mouseCursor: SystemMouseCursors.click,
+                              child: Text(
+                                "${showPointCloud.value ? "hide" : "show"} point cloud",
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onVerticalDragUpdate: (details) => rows.value =
+                                (rows.value - details.delta.dy.toInt())
+                                    .clamp(2, 12),
+                            child: FocusableActionDetector(
+                              mouseCursor: SystemMouseCursors.resizeRow,
+                              child: Text(
+                                "${rows.value.toString().padLeft(2)} rows",
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onHorizontalDragUpdate: (details) => columns.value =
+                                (columns.value + details.delta.dx.toInt())
+                                    .clamp(2, 12),
+                            child: FocusableActionDetector(
+                              mouseCursor: SystemMouseCursors.resizeColumn,
+                              child: Text(
+                                "${columns.value.toString().padLeft(2)} columns",
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ),
-                GestureDetector(
-                  onHorizontalDragUpdate: (details) => columns.value =
-                      (columns.value + details.delta.dx.toInt()).clamp(2, 12),
-                  child: FocusableActionDetector(
-                    mouseCursor: SystemMouseCursors.resizeColumn,
-                    child: Text(
-                      "${columns.value.toString().padLeft(2)} columns",
-                    ),
-                  ),
-                ),
-              ],
+                );
+              }),
             ),
             Expanded(
               child: Padding(

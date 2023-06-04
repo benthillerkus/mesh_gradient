@@ -148,7 +148,8 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
                             },
                             child: AnimatedScale(
                               filterQuality: FilterQuality.low,
-                              duration: const Duration(milliseconds: 100),
+                              duration: const Duration(seconds: 2),
+                              curve: Curves.elasticOut,
                               scale: switch ((_mousePosition, _selectedDot)) {
                                 (null, null) => 1,
                                 (_, (int ii, int jj)) =>
