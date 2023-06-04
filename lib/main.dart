@@ -122,38 +122,47 @@ class Home extends HookWidget {
               ],
             ),
             Expanded(
-              child: Center(
-                child: SizedBox.square(
-                  dimension: 600,
-                  child: MeshGradientConfiguration(
-                    rows: rows.value,
-                    columns: columns.value,
-                    previewResolution: 0.05,
-                    debugGrid: showPointCloud.value,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: SizedBox.square(
+                    dimension: 600,
+                    child: MeshGradientConfiguration(
+                      rows: rows.value,
+                      columns: columns.value,
+                      previewResolution: 0.05,
+                      debugGrid: showPointCloud.value,
+                    ),
                   ),
                 ),
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Link(
-                  target: LinkTarget.blank,
-                  uri: Uri.https("github.com", "benthillerkus/mesh_gradient"),
-                  builder: (context, fn) => GestureDetector(
-                    onTap: fn,
-                    child: const FocusableActionDetector(
-                        mouseCursor: SystemMouseCursors.click,
-                        child: Text(
-                          "benthillerkus/mesh_gradient",
-                          style: TextStyle(
-                            color: Color.fromARGB(255, 87, 126, 209),
-                            decoration: TextDecoration.underline,
-                          ),
-                        )),
+            SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                runAlignment: WrapAlignment.center,
+                children: [
+                  Link(
+                    target: LinkTarget.blank,
+                    uri: Uri.https("github.com", "benthillerkus/mesh_gradient"),
+                    builder: (context, fn) => GestureDetector(
+                      onTap: fn,
+                      child: const FocusableActionDetector(
+                          mouseCursor: SystemMouseCursors.click,
+                          child: Text(
+                            "benthillerkus/mesh_gradient",
+                            softWrap: true,
+                            maxLines: 2,
+                            style: TextStyle(
+                              color: Color.fromARGB(255, 87, 126, 209),
+                              decoration: TextDecoration.underline,
+                            ),
+                          )),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
