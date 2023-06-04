@@ -15,6 +15,7 @@ class PickerDot extends HookWidget {
     this.dotStyle = const DotThemeData(),
     this.onSelectionStateChanged,
     this.pickerRadius = 100,
+    this.extraRadius = 120,
     this.smallerBarRadius = 12,
   });
 
@@ -23,9 +24,10 @@ class PickerDot extends HookWidget {
   final void Function(OklabColor) onColorChanged;
   final void Function(bool isSelecting)? onSelectionStateChanged;
   final double pickerRadius;
+  final double extraRadius;
   final double smallerBarRadius;
   double get adjustedPickerRadius =>
-      pickerRadius + Offset(color.a, color.b).distance * 120;
+      pickerRadius + Offset(color.a, color.b).distance * extraRadius;
 
   void handleChromaInteraction(Offset position, {Offset? delta}) {
     var angle = position.direction;
@@ -33,11 +35,11 @@ class PickerDot extends HookWidget {
     var c = Offset(color.a, color.b).distance;
     if (delta != null) {
       if (position.distance > adjustedPickerRadius) {
-        c += delta.distance * 3 / 120;
+        c += delta.distance * 3 / extraRadius;
         angle = Offset(color.a, color.b).direction;
       } else if (position.distance <
           adjustedPickerRadius - dotStyle.radius * 2) {
-        c -= delta.distance * 3 / 120;
+        c -= delta.distance * 3 / extraRadius;
         angle = Offset(color.a, color.b).direction;
       }
     }
@@ -69,6 +71,27 @@ class PickerDot extends HookWidget {
       overlayChildBuilder: (context) => LayoutBuilder(
         builder: (context, constraints) {
           final leaderScreenPosition = link.leader?.offset;
+          final keepOnScreen = leaderScreenPosition == null
+              ? Offset.zero
+              : () {
+                  final origin =
+                      Offset(adjustedPickerRadius, adjustedPickerRadius);
+                  final smallConstraints = constraints.deflate(EdgeInsets.only(
+                    left: origin.dx,
+                    top: origin.dy,
+                    right: origin.dx + dotStyle.radius + smallerBarRadius + 8,
+                    bottom: origin.dy + dotStyle.radius + smallerBarRadius + 8,
+                  ));
+                  final topLeft = smallConstraints.biggest.topLeft(origin);
+                  final bottomRight =
+                      smallConstraints.biggest.bottomRight(origin);
+                  final clamped = Offset(
+                      leaderScreenPosition.dx.clamp(topLeft.dx, bottomRight.dx),
+                      leaderScreenPosition.dy
+                          .clamp(topLeft.dy, bottomRight.dy));
+                  return clamped - leaderScreenPosition;
+                }();
+
           return Stack(
             children: [
               Positioned.fill(
@@ -85,8 +108,8 @@ class PickerDot extends HookWidget {
               CompositedTransformFollower(
                 targetAnchor: Alignment.center,
                 followerAnchor: Alignment.center,
+                offset: keepOnScreen,
                 link: link,
-                // offset: keepOnScreen,
                 child: MouseRegion(
                   cursor: SystemMouseCursors.precise,
                   child: Listener(
