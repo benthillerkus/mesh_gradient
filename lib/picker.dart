@@ -17,6 +17,7 @@ class PickerDot extends HookWidget {
     this.pickerRadius = 100,
     this.extraRadius = 120,
     this.smallerBarRadius = 12,
+    this.origin = Offset.zero,
   });
 
   final DotThemeData dotStyle;
@@ -26,6 +27,7 @@ class PickerDot extends HookWidget {
   final double pickerRadius;
   final double extraRadius;
   final double smallerBarRadius;
+  final Offset origin;
   double get adjustedPickerRadius =>
       pickerRadius + Offset(color.a, color.b).distance * extraRadius;
 
@@ -70,25 +72,28 @@ class PickerDot extends HookWidget {
       // The LayoutBuilder is just there to ensure that resizing the window will recalculate the keepOnScreen offset
       overlayChildBuilder: (context) => LayoutBuilder(
         builder: (context, constraints) {
-          final leaderScreenPosition = link.leader?.offset;
-          final keepOnScreen = leaderScreenPosition == null
+          final keepOnScreen = link.leader == null
               ? Offset.zero
               : () {
-                  final origin =
+                  final leaderScreenPosition = origin + link.leader!.offset;
+                  final topLeft =
                       Offset(adjustedPickerRadius, adjustedPickerRadius);
                   final smallConstraints = constraints.deflate(EdgeInsets.only(
-                    left: origin.dx,
-                    top: origin.dy,
-                    right: origin.dx + dotStyle.radius + smallerBarRadius + 8,
-                    bottom: origin.dy + dotStyle.radius + smallerBarRadius + 8,
+                    left: topLeft.dx,
+                    top: topLeft.dy,
+                    right: topLeft.dx + dotStyle.radius + smallerBarRadius + 8,
+                    bottom: topLeft.dy + dotStyle.radius + smallerBarRadius + 8,
                   ));
-                  final topLeft = smallConstraints.biggest.topLeft(origin);
                   final bottomRight =
-                      smallConstraints.biggest.bottomRight(origin);
+                      smallConstraints.biggest.bottomRight(topLeft);
                   final clamped = Offset(
                       leaderScreenPosition.dx.clamp(topLeft.dx, bottomRight.dx),
                       leaderScreenPosition.dy
                           .clamp(topLeft.dy, bottomRight.dy));
+
+                  // print(
+                  //     "constraints: ${constraints.biggest} leader: $leaderScreenPosition bottomRight: $bottomRight clamped: $clamped offset: ${clamped - leaderScreenPosition}");
+
                   return clamped - leaderScreenPosition;
                 }();
 

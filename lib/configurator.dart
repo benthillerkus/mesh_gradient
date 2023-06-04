@@ -29,10 +29,20 @@ class MeshGradientConfiguration extends StatefulWidget {
 }
 
 class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
+  final overlayController = OverlayPortalController();
+  final link = LayerLink();
+
   @override
   void initState() {
     super.initState();
     fillLists();
+    overlayController.show();
+  }
+
+  @override
+  void dispose() {
+    overlayController.hide();
+    super.dispose();
   }
 
   @override
@@ -96,105 +106,122 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
             });
           }
         },
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned.fill(
-              child: CustomPaint(
-                isComplex: true,
-                painter: MeshGradientPainter(
-                  positions,
-                  colors,
-                  resolution: widget.previewResolution,
-                  debugGrid: widget.debugGrid,
-                ),
-                foregroundPainter:
-                    (_mousePosition == null || _selectedDot != null)
-                        ? null
-                        : IsoLinePainter(
-                            positions,
-                            _mousePosition!.alignmentIn(constraints.biggest),
-                          ),
-              ),
-            ),
-            for (int i = 0; i < positions.length; i++)
-              for (int j = 0; j < positions[i].length; j++)
-                Positioned(
-                  left:
-                      (positions[i][j].x / 2 + 0.5) * constraints.biggest.width,
-                  top: (positions[i][j].y / 2 + 0.5) *
-                      constraints.biggest.height,
-                  child: Transform.translate(
-                    offset: centerDotOffset,
-                    child: Listener(
-                      onPointerMove: (details) {
-                        setState(
-                          () {
-                            final newPosition = (positions[i][j]
-                                        .alongSize(constraints.biggest) +
-                                    details.delta)
-                                .clamp(constraints);
-                            positions[i][j] =
-                                newPosition.alignmentIn(constraints.biggest);
-                            // also update the _mousePosition for the hover effect
-                            if (_mousePosition != null) {
-                              _mousePosition = _mousePosition! + details.delta;
-                            }
-                            if (details.kind == PointerDeviceKind.touch ||
-                                details.kind == PointerDeviceKind.stylus) {
-                              _mousePosition = null;
-                            }
-                          },
-                        );
-                      },
-                      child: AnimatedScale(
-                        filterQuality: FilterQuality.low,
-                        duration: const Duration(milliseconds: 100),
-                        scale: switch ((_mousePosition, _selectedDot)) {
-                          (null, null) => 1,
-                          (_, (int ii, int jj)) =>
-                            (ii == i && jj == j) ? 1 : 0.2,
-                          (Offset mousePosition, _) => () {
-                              final distanceX = (mousePosition.dx -
-                                      (positions[i][j].x / 2 + 0.5) *
-                                          constraints.biggest.width)
-                                  .abs();
-                              final distanceY = (mousePosition.dy -
-                                      (positions[i][j].y / 2 + 0.5) *
-                                          constraints.biggest.height)
-                                  .abs();
-                              final distance =
-                                  Offset(distanceX, distanceY).distanceSquared;
-                              final distanceNormalized = distance /
-                                  constraints.biggest
-                                      .bottomRight(Offset.zero)
-                                      .distanceSquared;
-                              return max(0.2, 1 - distanceNormalized * 10);
-                            }()
-                        },
-                        child: PickerDot(
-                          color: colors[i][j],
-                          dotStyle: const DotThemeData().copyWith(
-                            border: colors[i][j],
-                            cursor: SystemMouseCursors.move,
-                          ),
-                          onSelectionStateChanged: (isSelecting) => setState(
-                            () {
-                              if (isSelecting) {
-                                _selectedDot = (i, j);
-                              } else {
-                                _selectedDot = null;
+        child: OverlayPortal(
+          controller: overlayController,
+          overlayChildBuilder: (context) {
+            return LayoutBuilder(builder: (context, _) {
+              return CompositedTransformFollower(
+                link: link,
+                offset: centerDotOffset,
+                child: Stack(
+                  children: [
+                    for (int i = 0; i < positions.length; i++)
+                      for (int j = 0; j < positions[i].length; j++)
+                        Positioned(
+                          left: (positions[i][j].x / 2 + 0.5) *
+                              constraints.biggest.width,
+                          top: (positions[i][j].y / 2 + 0.5) *
+                              constraints.biggest.height,
+                          child: Listener(
+                            onPointerMove: (details) {
+                              final newPosition = (positions[i][j]
+                                          .alongSize(constraints.biggest) +
+                                      details.delta)
+                                  .clamp(constraints);
+                              var newMousePosition = _mousePosition;
+                              // also update the _mousePosition for the hover effect
+                              if (_mousePosition != null) {
+                                newMousePosition =
+                                    _mousePosition! + details.delta;
                               }
+                              if (details.kind == PointerDeviceKind.touch ||
+                                  details.kind == PointerDeviceKind.stylus) {
+                                newMousePosition = null;
+                              }
+                              setState(
+                                () {
+                                  positions[i][j] = newPosition
+                                      .alignmentIn(constraints.biggest);
+                                  _mousePosition = newMousePosition;
+                                },
+                              );
                             },
+                            child: AnimatedScale(
+                              filterQuality: FilterQuality.low,
+                              duration: const Duration(milliseconds: 100),
+                              scale: switch ((_mousePosition, _selectedDot)) {
+                                (null, null) => 1,
+                                (_, (int ii, int jj)) =>
+                                  (ii == i && jj == j) ? 1 : 0.2,
+                                (Offset mousePosition, _) => () {
+                                    final distanceX = (mousePosition.dx -
+                                            (positions[i][j].x / 2 + 0.5) *
+                                                constraints.biggest.width)
+                                        .abs();
+                                    final distanceY = (mousePosition.dy -
+                                            (positions[i][j].y / 2 + 0.5) *
+                                                constraints.biggest.height)
+                                        .abs();
+                                    final distance =
+                                        Offset(distanceX, distanceY)
+                                            .distanceSquared;
+                                    final distanceNormalized = distance /
+                                        constraints.biggest
+                                            .bottomRight(Offset.zero)
+                                            .distanceSquared;
+                                    return max(
+                                        0.2, 1 - distanceNormalized * 10);
+                                  }()
+                              },
+                              child: PickerDot(
+                                color: colors[i][j],
+                                dotStyle: const DotThemeData().copyWith(
+                                  border: colors[i][j],
+                                  cursor: SystemMouseCursors.move,
+                                ),
+                                origin: link.leader == null
+                                    ? Offset.zero
+                                    : link.leader!.offset + centerDotOffset,
+                                onSelectionStateChanged: (isSelecting) =>
+                                    setState(
+                                  () {
+                                    if (isSelecting) {
+                                      _selectedDot = (i, j);
+                                    } else {
+                                      _selectedDot = null;
+                                    }
+                                  },
+                                ),
+                                onColorChanged: (cl) =>
+                                    setState(() => colors[i][j] = cl),
+                              ),
+                            ),
                           ),
-                          onColorChanged: (cl) =>
-                              setState(() => colors[i][j] = cl),
                         ),
-                      ),
-                    ),
-                  ),
+                  ],
                 ),
-          ],
+              );
+            });
+          },
+          child: CompositedTransformTarget(
+            link: link,
+            child: CustomPaint(
+              isComplex: true,
+              painter: MeshGradientPainter(
+                positions,
+                colors,
+                resolution: widget.previewResolution,
+                debugGrid: widget.debugGrid,
+              ),
+              foregroundPainter:
+                  (_mousePosition == null || _selectedDot != null)
+                      ? null
+                      : IsoLinePainter(
+                          positions,
+                          _mousePosition!.alignmentIn(constraints.biggest),
+                        ),
+            ),
+          ),
         ),
       );
     });
