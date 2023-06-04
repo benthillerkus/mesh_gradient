@@ -80,10 +80,9 @@ class Home extends HookWidget {
           children: [
             SizedBox(
               height: 150,
-              width: 600,
               child: Builder(builder: (context) {
                 return PseudoElements(
-                  gap: 60,
+                  gap: 90,
                   before: Transform.rotate(
                     angle: -0.25,
                     alignment: Alignment.topRight,
