@@ -2,7 +2,7 @@
 
 #include <flutter/runtime_effect.glsl>
 #define MAIN
-#include <oklch.glsl>
+#include <oklch.frag>
 #undef MAIN
 
 uniform vec2 uSize;

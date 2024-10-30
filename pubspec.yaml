@@ -31,7 +31,7 @@ dev_dependencies:
 
 flutter:
   shaders:
-    - "assets/oklch.glsl"
-    - "assets/picker.glsl"
+    - "assets/oklch.frag"
+    - "assets/picker.frag"
   assets:
     - "assets/tribal.svg.vec"

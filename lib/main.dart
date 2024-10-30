@@ -16,7 +16,7 @@ Future<void> main() async {
   usePathUrlStrategy();
 
   final pickerFragmentProgram =
-      await FragmentProgram.fromAsset('assets/picker.glsl');
+      await FragmentProgram.fromAsset('assets/picker.frag');
   pickerFragmentShader = pickerFragmentProgram.fragmentShader();
   runApp(HookBuilder(builder: (context) {
     final brightness = usePlatformBrightness();
