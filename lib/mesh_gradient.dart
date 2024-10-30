@@ -1,3 +1,5 @@
+// ignore_for_file: type_literal_in_constant_pattern
+
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -32,11 +34,11 @@ class BezierPatchSurface<T> {
   BezierPatchSurface(this._controlPoints) {
     lerp = switch (T) {
       Offset => Offset.lerp as T? Function(T? a, T? b, double t),
+      OklabColor => ((OklabColor? a, OklabColor? b, double t) =>
+          a!.interpolate(b!, t)) as T? Function(T? a, T? b, double t),
       Color => Color.lerp as T? Function(T? a, T? b, double t),
       Alignment => Alignment.lerp as T? Function(T? a, T? b, double t),
       Size => Size.lerp as T? Function(T? a, T? b, double t),
-      OklabColor => ((OklabColor? a, OklabColor? b, double t) =>
-          a!.interpolate(b!, t)) as T? Function(T? a, T? b, double t),
       _ => throw UnsupportedError('Unsupported type $T'),
     };
   }
