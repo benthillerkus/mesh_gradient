@@ -87,8 +87,15 @@ class Home extends HookWidget {
                     angle: -0.25,
                     alignment: Alignment.topRight,
                     child: VectorGraphic(
-                        alignment: Alignment.centerRight,
-                        loader: tribalAssetLoader),
+                      alignment: Alignment.centerRight,
+                      loader: tribalAssetLoader,
+                      colorFilter: brightness == Brightness.light
+                          ? null
+                          : ColorFilter.mode(
+                              const Color.fromARGB(255, 255, 255, 255),
+                              BlendMode.srcIn,
+                            ),
+                    ),
                   ),
                   after: Transform.flip(
                       flipX: true,
@@ -96,8 +103,15 @@ class Home extends HookWidget {
                         angle: -0.25,
                         alignment: Alignment.topRight,
                         child: VectorGraphic(
-                            alignment: Alignment.centerRight,
-                            loader: tribalAssetLoader),
+                          alignment: Alignment.centerRight,
+                          loader: tribalAssetLoader,
+                          colorFilter: brightness == Brightness.light
+                              ? null
+                              : ColorFilter.mode(
+                                  const Color.fromARGB(255, 255, 255, 255),
+                                  BlendMode.srcIn,
+                                ),
+                        ),
                       )),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
