@@ -86,14 +86,29 @@ Iterable<List<int>> triangulateQuads(Iterable<Quad> quadFaces) sync* {
 }
 
 class MeshGradientPainter extends CustomPainter {
-  const MeshGradientPainter(this.positions, this.colors,
-      {this.resolution = 0.05, this.debugGrid = false});
+  const MeshGradientPainter(
+    this.positions,
+    this.colors, {
+    this.key,
+    this.resolution = 0.05,
+    this.debugGrid = false,
+  });
+
+  /// The key is used to distinguish the use of this painter in one place
+  /// from another.
+  ///
+  /// This allows the painter to reuse some buffers and avoid unnecessary
+  /// allocations.
+  final Key? key;
   final List<List<OklabColor>> colors;
   final List<List<Alignment>> positions;
   final double resolution;
   final bool debugGrid;
 
   static final Map<(int, int), Uint16List> _indicesCache = {};
+
+  static final Map<Key, Float32List> _positionsCache = {};
+  static final Map<Key, Int32List> _colorsCache = {};
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -103,8 +118,23 @@ class MeshGradientPainter extends CustomPainter {
     final surface = BezierPatchSurface(positions);
     final colorSurface = BezierPatchSurface(colors);
 
-    final evaluatedPositions = Float32List(yRes * xRes * 2);
-    final evaluatedColors = Int32List(yRes * xRes);
+    final Float32List evaluatedPositions;
+    final Int32List evaluatedColors;
+    final evaluatedPositionsLength = yRes * xRes * 2;
+    final evaluatedColorsLength = yRes * xRes;
+    if (key == null) {
+      evaluatedPositions = Float32List(evaluatedPositionsLength);
+      evaluatedColors = Int32List(evaluatedColorsLength);
+    } else {
+      if (!_positionsCache.containsKey(key) ||
+          _positionsCache[key]!.length < evaluatedPositionsLength) {
+        _positionsCache[key!] = Float32List(evaluatedPositionsLength);
+        _colorsCache[key!] = Int32List(evaluatedColorsLength);
+      }
+      evaluatedPositions = _positionsCache[key]!;
+      evaluatedColors = _colorsCache[key]!;
+    }
+
     {
       var epCounter = 0;
       var ecCounter = 0;
@@ -129,8 +159,8 @@ class MeshGradientPainter extends CustomPainter {
 
     final vertices = Vertices.raw(
       VertexMode.triangles,
-      evaluatedPositions,
-      colors: evaluatedColors,
+      Float32List.sublistView(evaluatedPositions, 0, evaluatedPositionsLength),
+      colors: Int32List.sublistView(evaluatedColors, 0, evaluatedColorsLength),
       indices: indices,
     );
 

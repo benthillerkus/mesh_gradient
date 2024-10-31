@@ -209,6 +209,7 @@ class _MeshGradientConfigurationState extends State<MeshGradientConfiguration> {
             child: CustomPaint(
               isComplex: true,
               painter: MeshGradientPainter(
+                key: ValueKey(#mesh),
                 positions,
                 colors,
                 resolution: widget.previewResolution,
